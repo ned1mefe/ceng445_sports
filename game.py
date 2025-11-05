@@ -20,13 +20,13 @@ class Game():
             for player_name in home.players:
                     self._stats["Home"][player_name] = 0
         except AttributeError:
-            print(f"Warning: Team {home.name} has no 'players' attribute.")
+            print(f"Team {home.name} does not contain players")
             
         try:
             for player_name in away.players:
                     self._stats["Away"][player_name] = 0
         except AttributeError:
-            print(f"Warning: Team {away.name} has no 'players' attribute.")
+            print(f"Team {away.name} does not contain players")
 
     def id(self):
         return self._id
