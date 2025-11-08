@@ -37,6 +37,7 @@
     # * If you cannot adequately explain your work, even if your code functions correctly, 
     # your score for this component will be capped at 40% of the points (i.e., 10 points max).
 
+from pprint import pp
 from game import Game
 from team import Team
 import datetime
@@ -68,15 +69,15 @@ print("Game started.")
 
 try:
     game.score(2, team2, "Larkin")
-    print(game.stats())
+    pp(game.stats())
     game.score(3, team1, "Biberoviç")
-    print(game.stats())
+    pp(game.stats())
     game.score(2, team1, "Baldwin IV")
-    print(game.stats())
+    pp(game.stats())
     game.score(1, team2, "Larkin")
-    print(game.stats())
+    pp(game.stats())
     game.score(3, team2, "Bobua")
-    print(game.stats())
+    pp(game.stats())
 except ValueError as e:
     print(f"An error occurred during scoring: {e}")
 
@@ -85,4 +86,4 @@ print("Game ended.")
 
 # --- 4. Print Stats ---
 print("\n--- 4. Final Stats ---")
-print(game.stats())
+pp(game.stats())
