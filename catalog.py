@@ -1,11 +1,63 @@
+import uuid
+from cup import Cup
+from team import Team
+from game import Game
+
 class Catalog:
     def __init__(self):
         self.attachDict = {} # user (or userID) -> [objectId]
         self.objectDict = {} # objectId -> object
 
+    def _resolve_team(self, val):
+        if val in self.objectDict:
+            resolved = self.objectDict[val]
+            if isinstance(resolved, Team):
+                return resolved
+            else:
+                raise ValueError(f"Object with id {val} is not a Team")
+
+        raise ValueError("Cannot resolve team: must be an active team id")
+
+    def _create_team(self, **kw):
+        return Team(kw['name'], kw['year'], kw['country'])
+
+    def _create_game(self, **kw):
+        try:
+            home = self._resolve_team(kw['home'])
+            away = self._resolve_team(kw['away'])
+            dt = kw['datetime']
+        except KeyError as e:
+            raise ValueError(f"Missing required argument for game: {e.args[0]}")
+        return Game(home, away, dt)
+
+    def _create_cup(self, **kw):
+        try:
+            teams_raw = kw['teams']
+        except KeyError:
+            raise ValueError("Cup requires 'teams' argument")
+        teams = [self._resolve_team(t) for t in teams_raw]
+        return Cup(teams, kw.get('cup_type'), kw.get('interval'))
+
     def create(self, **kw):
-        #TODO:: implement this after object implementations
-        pass
+        kind = kw.get('type', None)
+        if not kind:
+            raise ValueError("Missing 'type' ('team', 'game', or 'cup')")
+
+        creators = {
+            'team': self._create_team,
+            'game': self._create_game,
+            'cup': self._create_cup
+        }
+
+        if kind.lower() not in creators:
+            raise ValueError(f"Unknown type: {kind}")
+
+        obj = creators[kind.lower()](**kw)
+        obj_id = uuid.uuid4()
+        self.objectDict[obj_id] = obj
+        return obj_id
+
+
 
     def list(self):
         #should also return description?? with ids
