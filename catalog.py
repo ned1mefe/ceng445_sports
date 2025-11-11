@@ -36,7 +36,11 @@ class Catalog:
         except KeyError:
             raise ValueError("Cup requires 'teams' argument")
         teams = [self._resolve_team(t) for t in teams_raw]
-        return Cup(teams, kw.get('cup_type'), kw.get('interval'))
+        cup = Cup(teams, kw.get('cup_type'), kw.get('interval'))
+
+        cup.watch(self)  # Catalog observes the cup for new games
+        return cup
+
 
     def create(self, **kw):
         kind = kw.get('type', None)
@@ -102,3 +106,8 @@ class Catalog:
         #not sure if its necessary
         # del(obj)
 
+    def update(self, event):
+        if event["type"] == "new_game":
+            game = event["game"]
+            obj_id = uuid.uuid4()
+            self.objectDict[obj_id] = game

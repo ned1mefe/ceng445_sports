@@ -62,6 +62,32 @@ class Cup():
     def unwatch(self, obj):
         self.observers.discard(obj) #does not raise error if obj not found
 
+    def _notify(self, event):
+        for obs in self.observers:
+            obs.update(event)
+
+    def update(self, event):
+        if event["type"] == "game_started":
+            pass
+        elif event["type"] == "game_paused":
+            pass
+        elif event["type"] == "game_resumed":
+            pass
+        elif event["type"] == "game_ended":
+            pass
+        elif event["type"] == "score":
+            pass
+        
+
+    def _create_game(self, team1, team2, datetime):
+        game = Game(team1, team2, datetime)
+        self._games[game.id()] = game
+
+        game.watch(self)  # Cup observes the game for events
+
+        self._notify({"type": "new_game", "game": game})
+        return game
+
     def _initialize_games(self):
         if self._type in ["ELIMINATION", "ELIMINATION2"]:
             self._initialize_elimination()
@@ -70,7 +96,7 @@ class Cup():
         elif self._type in ["LEAGUE", "LEAGUE2"]:
             self._initialize_league()
 
-    def _initialize_elimination(self): #todo add catalog reference
+    def _initialize_elimination(self):
         shuffled_teams = self._teams[:]
         shuffle(shuffled_teams)
         
@@ -80,14 +106,13 @@ class Cup():
 
         for i in range(0, len(shuffled_teams), 2):
             if i + 1 < len(shuffled_teams):
-                game = Game(shuffled_teams[i], shuffled_teams[i + 1])
-                self._games[game.id()] = game
+                self._create_game(shuffled_teams[i], shuffled_teams[i+1], self._interval[0]) #placeholder datetime
+
 
         if self._type == "ELIMINATION2":
             for i in range(0, len(shuffled_teams), 2):
                 if i + 1 < len(shuffled_teams):
-                    game = Game(shuffled_teams[i+1], shuffled_teams[i])
-                    self._games[game.id()] = game
+                    self._create_game(shuffled_teams[i+1], shuffled_teams[i], self._interval[0]) #placeholder datetime
 
 
     def _initialize_group(self):

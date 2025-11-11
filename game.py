@@ -44,14 +44,14 @@ class Game():
             raise ValueError("Game has already ended")
         
         self.is_running = True
-        # self._notify_observers()
+        self._notify({"type": "game_started", "game": self})
 
     def pause(self):
         if not self.is_running:
             raise ValueError("Game is not running")
         
         self.is_running = False
-        # self._notify_observers()
+        self._notify({"type": "game_paused", "game": self})
 
     def resume(self):
         if self.is_running:
@@ -60,7 +60,7 @@ class Game():
             raise ValueError("Game has already ended")
         
         self.is_running = True
-        # self._notify_observers()
+        self._notify({"type": "game_resumed", "game": self})
 
     def end(self):
         if self.is_ended:
@@ -68,7 +68,7 @@ class Game():
 
         self.is_running = False
         self.is_ended = True 
-        # self._notify_observers()
+        self._notify({"type": "game_ended", "game": self})
     
     def score(self, points, team, player):
         if team.name == self._home_team.name:
@@ -86,8 +86,8 @@ class Game():
         
         game_time_str = "00:00.0" # placeholder
         self.timeline.append( (game_time_str, team_key, player, points) )
-        
-        # self._notify_observers()
+
+        self._notify({"type": "score", "game": self, "team": team, "player": player, "points": points})
 
     # --- Observer Methods ---
     def watch(self, obj):
@@ -99,6 +99,10 @@ class Game():
             self.observers.remove(obj)
         except ValueError:
             pass
+
+    def _notify(self, event):
+        for obs in self.observers:
+            obs.update(event)
 
     def stats(self):
         home_player_stats = {
