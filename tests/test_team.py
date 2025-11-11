@@ -1,6 +1,6 @@
 import pytest
-from team import Team
-from player import Player
+from models.team import Team
+from models.player import Player
 
 @pytest.fixture
 def team():

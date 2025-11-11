@@ -38,8 +38,8 @@
     # your score for this component will be capped at 40% of the points (i.e., 10 points max).
 
 from pprint import pp
-from game import Game
-from team import Team
+from models.game import Game
+from models.team import Team
 import datetime
 # --- 1. Create Teams ---
 print("--- 1. Setting up teams ---")

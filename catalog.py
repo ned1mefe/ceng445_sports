@@ -1,7 +1,7 @@
 import uuid
-from cup import Cup
-from team import Team
-from game import Game
+from models.cup import Cup
+from models.team import Team
+from models.game import Game
 
 class Catalog:
     def __init__(self):

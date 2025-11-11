@@ -1,18 +1,26 @@
 from random import shuffle
 from game import Game
+from cup_types.group_cup import GroupCup
+from cup_types.league_cup import LeagueCup
+from cup_types.elimination_cup import EliminationCup
 
 class Cup():
     def __init__(self, teams, type, interval):
         self._teams = teams
         if (type not in ["ELIMINATION", "GROUP", "LEAGUE", "ELIMINATION2", "GROUP2", "LEAGUE2"]):
             raise ValueError("Invalid cup type")
-        self._type = type
+        
         self._interval = interval
-        self._games = {} # gameId -> Game object
-
-        self._initialize_games()
-
         self.observers = set()
+
+        if type in ["ELIMINATION", "ELIMINATION2"]:
+            self._cup_type = EliminationCup(self, teams, rematch_enabled=(type.endswith("2")))
+
+        elif type in ["GROUP", "GROUP2"]:
+            self._cup_type = GroupCup(self, teams, rematch_enabled=(type.endswith("2")))
+            
+        elif type in ["LEAGUE", "LEAGUE2"]:
+            self._cup_type = LeagueCup(self, teams, rematch_enabled=(type.endswith("2")))   
 
     
     def search(self, tname=None, group=None, between=None):
@@ -27,7 +35,7 @@ class Cup():
         if tname is not None:
             filters.append(nameFilter)
         if group is not None:
-            if self._type not in ["GROUP", "GROUP2"]:
+            if not isinstance(self._cup_type, GroupCup):
                 raise ValueError("Cannot filter by group in non-group cup type")
             filters.append(groupFilter)
         if between is not None:
@@ -40,8 +48,8 @@ class Cup():
         return results
     
     def __getitem__(self, gameid):
-        if gameid in self._games:
-            return self._games[gameid]
+        if gameid in self._cup_type._games:
+            return self._cup_type._games[gameid]
         else:
             raise KeyError("Game ID not found")
         
@@ -78,46 +86,3 @@ class Cup():
         elif event["type"] == "score":
             pass
         
-
-    def _create_game(self, team1, team2, datetime):
-        game = Game(team1, team2, datetime)
-        self._games[game.id()] = game
-
-        game.watch(self)  # Cup observes the game for events
-
-        self._notify({"type": "new_game", "game": game})
-        return game
-
-    def _initialize_games(self):
-        if self._type in ["ELIMINATION", "ELIMINATION2"]:
-            self._initialize_elimination()
-        elif self._type in ["GROUP", "GROUP2"]:
-            self._initialize_group()
-        elif self._type in ["LEAGUE", "LEAGUE2"]:
-            self._initialize_league()
-
-    def _initialize_elimination(self):
-        shuffled_teams = self._teams[:]
-        shuffle(shuffled_teams)
-        
-        if len(shuffled_teams) % 2 == 1:
-            bye_team = shuffled_teams.pop()
-            print(f"{bye_team.name} gets a bye to the next round")
-
-        for i in range(0, len(shuffled_teams), 2):
-            if i + 1 < len(shuffled_teams):
-                self._create_game(shuffled_teams[i], shuffled_teams[i+1], self._interval[0]) #placeholder datetime
-
-
-        if self._type == "ELIMINATION2":
-            for i in range(0, len(shuffled_teams), 2):
-                if i + 1 < len(shuffled_teams):
-                    self._create_game(shuffled_teams[i+1], shuffled_teams[i], self._interval[0]) #placeholder datetime
-
-
-    def _initialize_group(self):
-        pass
-
-
-    def _initialize_league(self):
-        pass
