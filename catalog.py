@@ -53,11 +53,9 @@ class Catalog:
             raise ValueError(f"Unknown type: {kind}")
 
         obj = creators[kind.lower()](**kw)
-        obj_id = uuid.uuid4()
+        obj_id = uuid.uuid4() if not isinstance(obj, Game) else obj.id() # Use Game's own ID
         self.objectDict[obj_id] = obj
         return obj_id
-
-
 
     def list(self):
         #should also return description?? with ids
