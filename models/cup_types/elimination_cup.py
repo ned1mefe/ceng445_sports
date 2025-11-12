@@ -1,4 +1,4 @@
-from random import shuffle
+from random import shuffle, choice
 from models.cup import Cup
 
 class EliminationCup(Cup):
@@ -37,36 +37,7 @@ class EliminationCup(Cup):
         elif event["type"] == "game_resumed":
             pass
         elif event["type"] == "game_ended":
-            game = event["game"]
-            score_home = game.stats()["Home"]["Pts"]
-            score_away = game.stats()["Away"]["Pts"]
-
-            if score_home > score_away:
-                winner = game.home
-                winner_score = score_home
-                loser = game.away
-                loser_score = score_away
-
-            elif score_away > score_home:
-                winner = game.away
-                loser = game.home
-                winner_score = score_away
-                loser_score = score_home
-
-            self.standings()[winner.name]["Won"].append((loser.name, winner_score, loser_score))
-            self.standings()[loser.name]["Lost"].append((winner.name, loser_score, winner_score))
-
-            self._active_teams.remove(loser)
-
-            if all(game.is_ended for game in self._games.values()):
-                if len(self._active_teams) > 1:
-                    for team in self._active_teams:
-                        self.standings()[team.name]["Round"] += 1
-                    self._schedule_round()
-
-                else:
-                    print(f"Tournament Winner: {self._active_teams[0].name}")
-
+            self.handleGameEnd(event)
         elif event["type"] == "score":
             pass
 
@@ -78,3 +49,65 @@ class EliminationCup(Cup):
 
     def __str__(self):
         return "EliminationCup"
+
+    def handleGameEnd(self, event):
+        game = event["game"]
+        score_home = game.stats()["Home"]["Pts"]
+        score_away = game.stats()["Away"]["Pts"]
+
+        if score_home > score_away:
+            winner = game.home
+            winner_score = score_home
+            loser = game.away
+            loser_score = score_away
+
+        elif score_away >= score_home: #away is the winner in case of tie
+            winner = game.away
+            loser = game.home
+            winner_score = score_away
+            loser_score = score_home
+
+        self.standings()[winner.name]["Won"].append((loser.name, winner_score, loser_score))
+        self.standings()[loser.name]["Lost"].append((winner.name, loser_score, winner_score))
+
+        if not self._rematch_enabled:
+            self._active_teams.remove(loser)
+
+        else:
+            matchAndRematch = [
+                    g for g in self._games.values()
+                    if {g.home.name, g.away.name} == {game.home.name, game.away.name}
+                ]
+            rematch = matchAndRematch[1] if matchAndRematch[0].id() == game.id() else matchAndRematch[0]
+
+            if (rematch.is_ended):
+                rematch_score_home = rematch.stats()["Home"]["Pts"]
+                rematch_score_away = rematch.stats()["Away"]["Pts"]
+
+                if score_home + rematch_score_away > score_away + rematch_score_home:
+                    loser = game.away
+                    self._active_teams.remove(loser)
+
+                elif score_home + rematch_score_away < score_away + rematch_score_home:
+                    loser = game.home
+                    self._active_teams.remove(loser)
+
+                else: #total score is tied, away score is the tiebreaker
+                    
+                    if score_away > rematch_score_away:
+                        loser = game.home
+                        self._active_teams.remove(loser)
+                    
+                    # also away score is tied, pick randomly
+                    else: 
+                        loser = choice([game.home, game.away])
+                        self._active_teams.remove(loser)
+
+        if all(game.is_ended for game in self._games.values()):
+            if len(self._active_teams) > 1:
+                for team in self._active_teams:
+                    self.standings()[team.name]["Round"] += 1
+                self._schedule_round()
+
+            else:
+                print(f"Tournament Winner: {self._active_teams[0].name}")
