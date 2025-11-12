@@ -38,34 +38,42 @@
     # your score for this component will be capped at 40% of the points (i.e., 10 points max).
 
 from pprint import pp
-from catalog import Catalog
 from datetime import datetime
-from models.game import Game  # Bu sınıfın Game(home, away, datetime) constructor’ı olduğunu varsayıyorum
+from models.cup_types.elimination_cup import EliminationCup
+from models.team import Team 
+
+class DummyObserver:
+    def __init__(self):
+        self.events = []
+
+    def update(self, event):
+        self.events.append(event)
 
 def main():
-    catalog = Catalog()
 
-    print("=== TEAM CREATION ===")
-    team1_id = catalog.create(type="team", name="Galatasaray", year=1905, country="Turkey")
-    team2_id = catalog.create(type="team", name="Fenerbahçe", year=1907, country="Turkey")
-    team3_id = catalog.create(type="team", name="Beşiktaş", year=1903, country="Turkey")
-    team4_id = catalog.create(type="team", name="Trabzonspor", year=1903, country="Turkey")
+    observer = DummyObserver()
+    sample_teams = [Team(f"Team{i}") for i in range(1, 5)]
+    for t in sample_teams:
+        t.addplayer(f"Player{t.name}_A",1)
+        t.addplayer(f"Player{t.name}_B",2)
+    elim = EliminationCup(sample_teams, (datetime(2025, 1, 1), datetime(2025, 12, 31)))
 
+    elim.watch(observer)
+    elim.initialize_games()
 
-    print("\n=== CUP CREATION ===")
-    cup_id = catalog.create(
-        type="cup",
-        cup_type="ELIMINATION",
-        teams=[team1_id, team2_id, team3_id, team4_id],
-        interval=(datetime.now(), datetime.now())
-    )
-    print(f"Cup created with ID: {cup_id}")
+    i = 0
+    while not observer.events or observer.events[-1]["type"] != "cup_ended":
+        game = list(elim._games.values())[i]
+        game.score(10, game.home(), list(game.home().players.keys())[0])
+        game.score(5, game.away(), list(game.away().players.keys())[0])
+        game.end()
+        i += 1
 
-    print("After cup creation, catalog now contains:")
+    standings = elim.standings()
 
-    print(catalog.objectDict[cup_id].standings())
+    print("Standings after one game ended:")
+    pp(standings)
 
-    print(catalog.list())
 
 if __name__ == "__main__":
     main()

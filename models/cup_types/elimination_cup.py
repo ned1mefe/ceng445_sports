@@ -37,6 +37,7 @@ class EliminationCup(Cup):
         elif event["type"] == "game_resumed":
             pass
         elif event["type"] == "game_ended":
+            self._notify(event)
             self.handleGameEnd(event)
         elif event["type"] == "score":
             pass
@@ -108,6 +109,7 @@ class EliminationCup(Cup):
                 for team in self._active_teams:
                     self.standings()[team.name]["Round"] += 1
                 self._schedule_round()
-
             else:
-                print(f"Tournament Winner: {self._active_teams[0].name}")
+                #print(f"Tournament Winner: {self._active_teams[0].name}")
+                self.standings()[self._active_teams[0].name]["Round"] += 1
+                self._notify({"type": "cup_ended", "cup": self})
