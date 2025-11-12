@@ -134,3 +134,8 @@ class Game():
             "Timeline": self.timeline
         }
         
+    def __str__(self):
+        return f"Game: {self._home_team.name} vs {self._away_team.name}"
+    
+    def description(self):
+        return str(self)

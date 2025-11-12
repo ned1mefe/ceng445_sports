@@ -48,3 +48,8 @@ class Team():
     def id(self):
         return self._id
 
+    def __str__(self):
+        return f"Team: {self.info['name']}"
+    
+    def description(self):
+        return str(self)

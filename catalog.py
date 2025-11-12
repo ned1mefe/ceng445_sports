@@ -40,21 +40,24 @@ class Catalog:
             raise ValueError("Cup requires 'teams' argument")
         teams = [self._resolve_team(t) for t in teams_raw]
         type = kw.get('cup_type', None)
+        rematch_enabled = type.endswith("2")
         interval = kw.get('interval', None)
 
         if (type not in ["ELIMINATION", "GROUP", "LEAGUE", "ELIMINATION2", "GROUP2", "LEAGUE2"]):
             raise ValueError("Invalid cup type")
         
         if type in ["ELIMINATION", "ELIMINATION2"]:
-            cup = EliminationCup(self, teams, interval, rematch_enabled=(type.endswith("2")))
+            cup = EliminationCup(teams, interval, rematch_enabled)
 
         elif type in ["GROUP", "GROUP2"]:
-            cup = GroupCup(self, teams, interval, rematch_enabled=(type.endswith("2")))
+            cup = GroupCup(teams, interval, rematch_enabled)
             
         elif type in ["LEAGUE", "LEAGUE2"]:
-            cup = LeagueCup(self, teams, interval, rematch_enabled=(type.endswith("2")))
+            cup = LeagueCup(teams, interval, rematch_enabled)
 
         cup.watch(self)  # Catalog observes the cup for new games
+        
+        cup.initialize_games()  # Initialize the cup (e.g., schedule initial games)
         return cup
 
 
@@ -77,14 +80,13 @@ class Catalog:
         return obj.id()
 
     def list(self):
-        #should also return description?? with ids
-        return list(self.objectDict.keys()) 
+        return [(obj.id(), obj.description()) for obj in self.objectDict.values()]
 
     def listattached(self, user):
         if (user not in self.attachDict):
             raise ValueError()
 
-        return [self.objectDict[objId] for objId in self.attachDict[user]] 
+        return [(objId, self.objectDict[objId].description()) for objId in self.attachDict[user]] 
 
     def attach(self, id, user):
         if user in self.attachDict:
@@ -124,5 +126,4 @@ class Catalog:
     def update(self, event):
         if event["type"] == "new_game":
             game = event["game"]
-            obj_id = uuid.uuid4()
-            self.objectDict[obj_id] = game
+            self.objectDict[game.id()] = game

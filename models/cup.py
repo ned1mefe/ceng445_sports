@@ -1,44 +1,42 @@
 from random import shuffle
 import uuid
-from game import Game
-from cup_types.group_cup import GroupCup
+from models.game import Game
 
 class Cup():
-    def __init__(self, teams, interval, rematch_enabled=False):
+    def __init__(self, teams, interval):
         self._teams = teams
         self._interval = interval
         self.observers = set()
         self._games = {}  # gameId -> Game object
         self._id = str(uuid.uuid4())
 
-
     def search(self, tname=None, group=None, between=None):
         results = []
 
-        nameFilter = lambda team: team.name == tname
-        groupFilter = lambda team: True # TODO: fix after adding groups
-        dateFilter = lambda team: (between[0] <= team.date <= between[1])
+        nameFilter = lambda game: game.home.name == tname or game.away.name == tname
+        groupFilter = lambda game: True # TODO: fix after adding groups
+        dateFilter = lambda game: (between[0] <= game.date <= between[1])
 
         filters = []
     
         if tname is not None:
             filters.append(nameFilter)
         if group is not None:
-            if not isinstance(self._cup_type, GroupCup):
+            if self.description() != "GroupCup":
                 raise ValueError("Cannot filter by group in non-group cup type")
-            filters.append(groupFilter)
+            filters.append(lambda team: True)
         if between is not None:
             filters.append(dateFilter)
 
-        for team in self._teams:
-            if all(f(team) for f in filters): #works fine with empty filter list
-                results.append(team)
-        
+        for game in self._games.values():
+            if all(f(game) for f in filters): #works fine with empty filter list
+                results.append(game)
+
         return results
     
     def __getitem__(self, gameid):
-        if gameid in self._cup_type._games:
-            return self._cup_type._games[gameid]
+        if gameid in self._games:
+            return self._games[gameid]
         else:
             raise KeyError("Game ID not found")
         
@@ -49,6 +47,9 @@ class Cup():
         pass
 
     def gametree(self):
+        pass
+
+    def initialize_games(self):
         pass
 
     def watch(self, obj, **searchparams):
@@ -86,5 +87,8 @@ class Cup():
 
         self._notify({"type": "new_game", "game": game})  # Notify cup's observers
         return game
+
+    def description(self):
+        return str(self)
     
     

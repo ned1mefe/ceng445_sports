@@ -38,52 +38,70 @@
     # your score for this component will be capped at 40% of the points (i.e., 10 points max).
 
 from pprint import pp
-from models.game import Game
-from models.team import Team
-import datetime
-# --- 1. Create Teams ---
-print("--- 1. Setting up teams ---")
-team1 = Team("Fenerbahçe Beko")
-team1.addplayer("Baldwin IV", 1)
-team1.addplayer("Biberoviç", 2)
-team1.addplayer("Tucker", 3)
+from catalog import Catalog
+from datetime import datetime
+from models.game import Game  # Bu sınıfın Game(home, away, datetime) constructor’ı olduğunu varsayıyorum
 
-team2 = Team("Anadolu Efes")
-team2.addplayer("Larkin", 10)
-team2.addplayer("Osmani", 11)
-team2.addplayer("Bobua", 12)
+def main():
+    catalog = Catalog()
 
-print(f"Home: {team1.name} with players: {list(team1.players.keys())}")
-print(f"Away: {team2.name} with players: {list(team2.players.keys())}")
+    print("=== TEAM CREATION ===")
+    team1_id = catalog.create(type="team", name="Galatasaray", year=1905, country="Turkey")
+    team2_id = catalog.create(type="team", name="Fenerbahçe", year=1907, country="Turkey")
+    team3_id = catalog.create(type="team", name="Beşiktaş", year=1903, country="Turkey")
 
-# --- 2. Create Game ---
-print("\n--- 2. Creating game ---")
-game_time = datetime.datetime.now()
-game = Game(team1, team2, game_time)
-print(f"Game created with ID: {game._id}")
+    print("Teams created with IDs:")
+    print(team1_id, team2_id, team3_id)
 
-# --- 3. Run Game and Score ---
-print("\n--- 3. Running game ---")
-game.start()
-print("Game started.")
+    print("\n=== ATTACH TEAMS TO USER ===")
+    user_id = "user123"
+    catalog.attach(team1_id, user_id)
+    catalog.attach(team2_id, user_id)
+    print(f"Attached teams to {user_id}: {catalog.listattached(user_id)}")
 
-try:
-    game.score(2, team2, "Larkin")
-    pp(game.stats())
-    game.score(3, team1, "Biberoviç")
-    pp(game.stats())
-    game.score(2, team1, "Baldwin IV")
-    pp(game.stats())
-    game.score(1, team2, "Larkin")
-    pp(game.stats())
-    game.score(3, team2, "Bobua")
-    pp(game.stats())
-except ValueError as e:
-    print(f"An error occurred during scoring: {e}")
+    print("\n=== CUP CREATION ===")
+    cup_id = catalog.create(
+        type="cup",
+        cup_type="ELIMINATION",
+        teams=[team1_id, team2_id, team3_id],
+        interval=(datetime.now(), datetime.now())
+    )
+    print(f"Cup created with ID: {cup_id}")
 
-game.end()
-print("Game ended.")
+    print("\n=== CATALOG LIST ===")
+    print(catalog.list())
 
-# --- 4. Print Stats ---
-print("\n--- 4. Final Stats ---")
-pp(game.stats())
+    print("\n=== CREATE A GAME DIRECTLY ===")
+    game_id = catalog.create(
+        type="game",
+        home=team1_id,
+        away=team2_id,
+        datetime=datetime.now()
+    )
+    print(f"Game created with ID: {game_id}")
+
+    print("\n=== ATTACH GAME AND LIST ===")
+    catalog.attach(game_id, user_id)
+    print(f"User’s attached objects: {catalog.listattached(user_id)}")
+
+    print("\n=== DELETE TEST ===")
+    try:
+        catalog.delete(team3_id)
+        print("Team3 deleted successfully.")
+    except ValueError:
+        print("Cannot delete team3: attached or not found.")
+
+    print("\n=== CUP EVENT SIMULATION ===")
+    # Simulate cup generating a new game and notifying catalog
+    fake_game = Game(
+        catalog.objectDict[team1_id],
+        catalog.objectDict[team2_id],
+        datetime.now()
+    )
+    event = {"type": "new_game", "game": fake_game}
+    catalog.update(event)
+    print("After cup event, catalog now contains:")
+    print(catalog.list())
+
+if __name__ == "__main__":
+    main()
