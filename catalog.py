@@ -1,5 +1,8 @@
 import uuid
 from models.cup import Cup
+from models.cup_types.elimination_cup import EliminationCup
+from models.cup_types.group_cup import GroupCup
+from models.cup_types.league_cup import LeagueCup
 from models.team import Team
 from models.game import Game
 
@@ -36,7 +39,20 @@ class Catalog:
         except KeyError:
             raise ValueError("Cup requires 'teams' argument")
         teams = [self._resolve_team(t) for t in teams_raw]
-        cup = Cup(teams, kw.get('cup_type'), kw.get('interval'))
+        type = kw.get('cup_type', None)
+        interval = kw.get('interval', None)
+
+        if (type not in ["ELIMINATION", "GROUP", "LEAGUE", "ELIMINATION2", "GROUP2", "LEAGUE2"]):
+            raise ValueError("Invalid cup type")
+        
+        if type in ["ELIMINATION", "ELIMINATION2"]:
+            cup = EliminationCup(self, teams, interval, rematch_enabled=(type.endswith("2")))
+
+        elif type in ["GROUP", "GROUP2"]:
+            cup = GroupCup(self, teams, interval, rematch_enabled=(type.endswith("2")))
+            
+        elif type in ["LEAGUE", "LEAGUE2"]:
+            cup = LeagueCup(self, teams, interval, rematch_enabled=(type.endswith("2")))
 
         cup.watch(self)  # Catalog observes the cup for new games
         return cup
@@ -57,9 +73,8 @@ class Catalog:
             raise ValueError(f"Unknown type: {kind}")
 
         obj = creators[kind.lower()](**kw)
-        obj_id = uuid.uuid4() if not isinstance(obj, Game) else obj.id() # Use Game's own ID
-        self.objectDict[obj_id] = obj
-        return obj_id
+        self.objectDict[obj.id()] = obj
+        return obj.id()
 
     def list(self):
         #should also return description?? with ids

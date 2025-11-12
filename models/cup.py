@@ -1,28 +1,17 @@
 from random import shuffle
+import uuid
 from game import Game
 from cup_types.group_cup import GroupCup
-from cup_types.league_cup import LeagueCup
-from cup_types.elimination_cup import EliminationCup
 
 class Cup():
-    def __init__(self, teams, type, interval):
+    def __init__(self, teams, interval, rematch_enabled=False):
         self._teams = teams
-        if (type not in ["ELIMINATION", "GROUP", "LEAGUE", "ELIMINATION2", "GROUP2", "LEAGUE2"]):
-            raise ValueError("Invalid cup type")
-        
         self._interval = interval
         self.observers = set()
+        self._games = {}  # gameId -> Game object
+        self._id = str(uuid.uuid4())
 
-        if type in ["ELIMINATION", "ELIMINATION2"]:
-            self._cup_type = EliminationCup(self, teams, rematch_enabled=(type.endswith("2")))
 
-        elif type in ["GROUP", "GROUP2"]:
-            self._cup_type = GroupCup(self, teams, rematch_enabled=(type.endswith("2")))
-            
-        elif type in ["LEAGUE", "LEAGUE2"]:
-            self._cup_type = LeagueCup(self, teams, rematch_enabled=(type.endswith("2")))   
-
-    
     def search(self, tname=None, group=None, between=None):
         results = []
 
@@ -52,6 +41,9 @@ class Cup():
             return self._cup_type._games[gameid]
         else:
             raise KeyError("Game ID not found")
+        
+    def id(self):
+        return self._id
         
     def standings(self):
         pass
@@ -86,3 +78,13 @@ class Cup():
         elif event["type"] == "score":
             pass
         
+    def _create_game(self, team1, team2, datetime):
+        game = Game(team1, team2, datetime)
+        self._games[game.id()] = game
+
+        game.watch(self)  # Cup observes the game for events
+
+        self._notify({"type": "new_game", "game": game})  # Notify cup's observers
+        return game
+    
+    

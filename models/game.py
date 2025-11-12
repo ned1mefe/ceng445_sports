@@ -6,7 +6,7 @@ class Game():
         self._home_team = home
         self._away_team = away
         self._datetime = datetime
-        self._id = uuid.uuid4()
+        self._id = str(uuid.uuid4())
         
         self.is_running = False
         self.is_ended = False
@@ -133,3 +133,4 @@ class Game():
             "Time": game_time_str,
             "Timeline": self.timeline
         }
+        

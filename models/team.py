@@ -1,4 +1,5 @@
-from player import Player
+import uuid
+from models.player import Player
 
 class Team():
     def __init__(self, name = None, year = None, country = None):
@@ -9,6 +10,7 @@ class Team():
         }
         self.numbers = {} # given jersey numbers to players
         self.players = {} # player name to player object
+        self._id = str(uuid.uuid4())
     
     def __setitem__(self, key, value):
         self.info[key] = value
@@ -42,4 +44,7 @@ class Team():
         
         else:
             raise ValueError("Player not in team")
+        
+    def id(self):
+        return self._id
 

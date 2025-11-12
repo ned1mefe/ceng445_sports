@@ -1,7 +1,12 @@
 from random import shuffle
-from models.cup_types.cup_type import CupType
+from models.cup import Cup
 
-class EliminationCup(CupType):
+class EliminationCup(Cup):
+
+    def __init__(self, cup, teams, interval, rematch_enabled=False):
+        super().__init__(cup, teams, interval, rematch_enabled)
+        pass
+
     def _schedule_games(self):
         shuffled_teams = self._teams[:]
         shuffle(shuffled_teams)
