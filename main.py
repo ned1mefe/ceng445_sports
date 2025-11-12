@@ -49,58 +49,22 @@ def main():
     team1_id = catalog.create(type="team", name="Galatasaray", year=1905, country="Turkey")
     team2_id = catalog.create(type="team", name="Fenerbahçe", year=1907, country="Turkey")
     team3_id = catalog.create(type="team", name="Beşiktaş", year=1903, country="Turkey")
+    team4_id = catalog.create(type="team", name="Trabzonspor", year=1903, country="Turkey")
 
-    print("Teams created with IDs:")
-    print(team1_id, team2_id, team3_id)
-
-    print("\n=== ATTACH TEAMS TO USER ===")
-    user_id = "user123"
-    catalog.attach(team1_id, user_id)
-    catalog.attach(team2_id, user_id)
-    print(f"Attached teams to {user_id}: {catalog.listattached(user_id)}")
 
     print("\n=== CUP CREATION ===")
     cup_id = catalog.create(
         type="cup",
         cup_type="ELIMINATION",
-        teams=[team1_id, team2_id, team3_id],
+        teams=[team1_id, team2_id, team3_id, team4_id],
         interval=(datetime.now(), datetime.now())
     )
     print(f"Cup created with ID: {cup_id}")
 
-    print("\n=== CATALOG LIST ===")
-    print(catalog.list())
+    print("After cup creation, catalog now contains:")
 
-    print("\n=== CREATE A GAME DIRECTLY ===")
-    game_id = catalog.create(
-        type="game",
-        home=team1_id,
-        away=team2_id,
-        datetime=datetime.now()
-    )
-    print(f"Game created with ID: {game_id}")
+    print(catalog.objectDict[cup_id].standings())
 
-    print("\n=== ATTACH GAME AND LIST ===")
-    catalog.attach(game_id, user_id)
-    print(f"User’s attached objects: {catalog.listattached(user_id)}")
-
-    print("\n=== DELETE TEST ===")
-    try:
-        catalog.delete(team3_id)
-        print("Team3 deleted successfully.")
-    except ValueError:
-        print("Cannot delete team3: attached or not found.")
-
-    print("\n=== CUP EVENT SIMULATION ===")
-    # Simulate cup generating a new game and notifying catalog
-    fake_game = Game(
-        catalog.objectDict[team1_id],
-        catalog.objectDict[team2_id],
-        datetime.now()
-    )
-    event = {"type": "new_game", "game": fake_game}
-    catalog.update(event)
-    print("After cup event, catalog now contains:")
     print(catalog.list())
 
 if __name__ == "__main__":

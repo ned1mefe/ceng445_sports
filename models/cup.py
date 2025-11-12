@@ -68,16 +68,7 @@ class Cup():
             obs.update(event)
 
     def update(self, event):
-        if event["type"] == "game_started":
-            pass
-        elif event["type"] == "game_paused":
-            pass
-        elif event["type"] == "game_resumed":
-            pass
-        elif event["type"] == "game_ended":
-            pass
-        elif event["type"] == "score":
-            pass
+        pass
         
     def _create_game(self, team1, team2, datetime):
         game = Game(team1, team2, datetime)

@@ -60,7 +60,6 @@ class Catalog:
         cup.initialize_games()  # Initialize the cup (e.g., schedule initial games)
         return cup
 
-
     def create(self, **kw):
         kind = kw.get('type', None)
         if not kind:
