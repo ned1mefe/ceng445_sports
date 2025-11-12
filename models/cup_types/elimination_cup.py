@@ -48,6 +48,8 @@ class EliminationCup(Cup):
         pass
 
     def __str__(self):
+        if self._rematch_enabled:
+            return "Elimination2Cup"
         return "EliminationCup"
 
     def handleGameEnd(self, event):

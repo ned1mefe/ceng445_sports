@@ -70,7 +70,7 @@ class Game():
         self.is_ended = True 
         self._notify({"type": "game_ended", "game": self})
     
-    def score(self, points, team, player):
+    def score(self, points, team, player = None):
         if team.name == self._home_team.name:
             team_key = "Home"
         elif team.name == self._away_team.name:
@@ -78,16 +78,16 @@ class Game():
         else:
             raise ValueError("Team not in game")
             
-        if player not in self._stats[team_key]:
-            raise ValueError(f"Player '{player}' not on {team_key} roster")
+        # if player not in self._stats[team_key]:
+        #     raise ValueError(f"Player '{player}' not on {team_key} roster") # player field must be optional
        
         self._stats[team_key]["score"] += points
-        self._stats[team_key][player] += points
+        # self._stats[team_key][player] += points # player field must be optional
         
         game_time_str = "00:00.0" # placeholder
-        self.timeline.append( (game_time_str, team_key, player, points) )
+        self.timeline.append( (game_time_str, team_key, player, points) ) # player field must be optional
 
-        self._notify({"type": "score", "game": self, "team": team, "player": player, "points": points})
+        self._notify({"type": "score", "game": self, "team": team, "player": player, "points": points}) # player field must be optional
 
     # --- Observer Methods ---
     def watch(self, obj):

@@ -40,12 +40,12 @@
 from pprint import pp
 from catalog import Catalog
 from datetime import datetime
+import random
 from models.game import Game  # Bu sınıfın Game(home, away, datetime) constructor’ı olduğunu varsayıyorum
 
 def main():
     catalog = Catalog()
 
-    print("=== TEAM CREATION ===")
     team1_id = catalog.create(type="team", name="Galatasaray", year=1905, country="Turkey")
     team2_id = catalog.create(type="team", name="Fenerbahçe", year=1907, country="Turkey")
     team3_id = catalog.create(type="team", name="Beşiktaş", year=1903, country="Turkey")
@@ -55,17 +55,36 @@ def main():
     print("\n=== CUP CREATION ===")
     cup_id = catalog.create(
         type="cup",
-        cup_type="ELIMINATION",
+        cup_type="LEAGUE2",
         teams=[team1_id, team2_id, team3_id, team4_id],
         interval=(datetime.now(), datetime.now())
     )
     print(f"Cup created with ID: {cup_id}")
+    cup = catalog.objectDict[cup_id]
+    
+    # CATALOG LIST:
+    print("\nCATALOG LIST\n")
+    pp(catalog.list())
 
-    print("After cup creation, catalog now contains:")
 
-    print(catalog.objectDict[cup_id].standings())
+    # LEAGUE TEST
+    print("First Standings\n:")
+    print(cup.standings())
 
-    print(catalog.list())
+   
+    print("\n=== START GAMES ===")
+    for game in cup._games.values():
+        game.start()
+        game.score(random.randint(0, 5), game._home_team)
+        game.score(random.randint(0, 5), game._away_team)
+        game.end()
+    print("\nGAMES ENDED\n:")
+    
+    print("Final Standings\n:")
+    print(cup.standings())
+    # LEAGUE TEST
+
+
 
 if __name__ == "__main__":
     main()
