@@ -13,9 +13,9 @@ class Cup():
     def search(self, tname=None, group=None, between=None):
         results = []
 
-        nameFilter = lambda game: game.home.name == tname or game.away.name == tname
+        nameFilter = lambda game: game.home().name == tname or game.away().name == tname
         groupFilter = lambda game: True # TODO: fix after adding groups
-        dateFilter = lambda game: (between[0] <= game.date <= between[1])
+        dateFilter = lambda game: (between[0] <= game._datetime <= between[1])
 
         filters = []
     
