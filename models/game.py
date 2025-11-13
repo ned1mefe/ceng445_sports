@@ -78,16 +78,17 @@ class Game():
         else:
             raise ValueError("Team not in game")
             
-        # if player not in self._stats[team_key]:
-        #     raise ValueError(f"Player '{player}' not on {team_key} roster") # player field must be optional
+        if (player) and player not in self._stats[team_key]:
+            raise ValueError(f"Player '{player}' not on {team_key} roster")
        
         self._stats[team_key]["score"] += points
-        # self._stats[team_key][player] += points # player field must be optional
+        if player:
+            self._stats[team_key][player] += points 
         
         game_time_str = "00:00.0" # placeholder
-        self.timeline.append( (game_time_str, team_key, player, points) ) # player field must be optional
+        self.timeline.append( (game_time_str, team_key, player, points) ) 
 
-        self._notify({"type": "score", "game": self, "team": team, "player": player, "points": points}) # player field must be optional
+        self._notify({"type": "score", "game": self, "team": team, "player": player, "points": points})
 
     # --- Observer Methods ---
     def watch(self, obj):
