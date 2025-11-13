@@ -8,6 +8,7 @@ class LeagueCup(Cup):
         self._rematch_enabled = rematch_enabled
         self._table = {team.name : {"Won": 0, "Draw": 0, "Lost": 0, "Scored": 0, "Conceded": 0, "Diff": 0, "Points": 0} for team in self._teams}
         
+        self._groupName = None
         self.pointsWin = 2
         self.pointsDraw = 1
         self.pointsLoss = 0
@@ -102,7 +103,8 @@ class LeagueCup(Cup):
 
         # all games are ended 
         if all(game.is_ended for game in self._games.values()):
-            self._notify({"type": "cup_ended", "cup": self})
+            sorted_dict = self.score_based_sorting()
+            self._notify({"type": "cup_ended", "cup": self, "winner": sorted_dict[0][0]})
 
            
     def score_based_sorting(self):
@@ -111,10 +113,15 @@ class LeagueCup(Cup):
             table_items,
             key=lambda item: (-item[1]["Points"], -item[1]["Diff"]),
         )
-        
         return sorted_items
+    
+    def league_ended(self):
+        return all(game.is_ended for game in self._games.values())
 
     def __str__(self):
+        if self._groupName:
+            return f"Group :{self._groupName}"
         if self._rematch_enabled:
             return "League2Cup"
         return "LeagueCup"
+    

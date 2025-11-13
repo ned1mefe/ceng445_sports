@@ -130,3 +130,7 @@ class Catalog:
         if event["type"] == "new_game":
             game = event["game"]
             self.objectDict[game.id()] = game
+        
+        if event["type"] == "new_group":
+            group = event["group"]
+            self.objectDict[group.id()] = group

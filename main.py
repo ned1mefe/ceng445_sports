@@ -40,58 +40,85 @@
 from pprint import pp
 from datetime import datetime
 import random
-# from models.game import Game  # Bu sınıfın Game(home, away, datetime) constructor’ı olduğunu varsayıyorum
 from catalog import Catalog
 
 
 def main():
     catalog = Catalog()
 
-    team1_id = catalog.create(type="team", name="Galatasaray", year=1905, country="Turkey")
-    team2_id = catalog.create(type="team", name="Fenerbahçe", year=1907, country="Turkey")
-    team3_id = catalog.create(type="team", name="Beşiktaş", year=1903, country="Turkey")
-    team4_id = catalog.create(type="team", name="Trabzonspor", year=1903, country="Turkey")
+    print("\n=== TEAM CREATION ===")
+    team_names = [
+        "Galatasaray", "Fenerbahçe", "Beşiktaş", "Trabzonspor",
+        "Bursaspor", "Başakşehir", "Adana Demirspor", "Sivasspor",
+        "Antalyaspor", "Konyaspor", "Alanyaspor", "Giresunspor",
+        "Hatayspor", "Kayserispor", "Gaziantep FK", "Çaykur Rizespor"
+    ]
 
-    teams=[catalog.objectDict[team1_id], catalog.objectDict[team2_id], catalog.objectDict[team3_id], catalog.objectDict[team4_id]]
-    
+    team_ids = []
+    for name in team_names:
+        team_id = catalog.create(type="team", name=name, year=random.randint(1900, 2000), country="Turkey")
+        team_ids.append(team_id)
+
+    teams = [catalog.objectDict[i] for i in team_ids]
     for t in teams:
-        t.addplayer(f"Player{t.name}_A",1)
-        t.addplayer(f"Player{t.name}_B",2)
+        t.addplayer(f"{t.name}_A", 1)
+        t.addplayer(f"{t.name}_B", 2)
 
     print("\n=== CUP CREATION ===")
     cup_id = catalog.create(
         type="cup",
-        cup_type="LEAGUE2",
-        teams=[team1_id, team2_id, team3_id, team4_id],
+        cup_type="GROUP",
+        teams=team_ids,
         interval=(datetime.now(), datetime.now())
     )
     print(f"Cup created with ID: {cup_id}")
     cup = catalog.objectDict[cup_id]
     
-    # CATALOG LIST:
+    # CATALOG LIST
     print("\nCATALOG LIST\n")
     pp(catalog.list())
 
-
-    # LEAGUE TEST
-    print("First Standings\n:")
+    # INITIAL STANDINGS
+    print("\n=== INITIAL STANDINGS ===")
     pp(cup.standings())
 
-   
-    print("\n=== START GAMES ===")
+    print("\n=== SIMULATING GROUP STAGE GAMES ===")
+    for group_name, group_cup in cup._groups.items():
+        print(f"\n--- GROUP {group_name} ---")
+        for game in group_cup._games.values():
+            game.start()
+            game.score(random.randint(0, 3), game._home_team)
+            game.score(random.randint(0, 3), game._away_team)
+            game.end()
+        print(f"Group {group_name} ended standings:")
+        pp(group_cup.standings())
 
-    for game in cup._games.values():
-        game.start()
-        game.score(random.randint(0, 5), game._home_team)
-        game.score(random.randint(0, 5), game._away_team)
-        game.end()
-        pp(game.stats())
+    # Playoffs automatically triggered after all groups end
+    if cup._playOffs:
+        print("\n=== PLAYOFF STAGE STARTED ===")
+        for game in list(cup._playOffs._games.values()):
+            game.start()
+            game.score(random.randint(0, 4), game._home_team)
+            game.score(random.randint(0, 4), game._away_team)
+            game.end()
+        
+        for game in list(l for l in cup._playOffs._games.values() if l.is_ended is False):
+            game.start()
+            game.score(random.randint(0, 4), game._home_team)
+            game.score(random.randint(0, 4), game._away_team)
+            game.end()
+        
+        for game in list(l for l in cup._playOffs._games.values() if l.is_ended is False):
+            game.start()
+            game.score(random.randint(0, 4), game._home_team)
+            game.score(random.randint(0, 4), game._away_team)
+            game.end()
 
-    print("\nGAMES ENDED\n:")
-    
-    print("Final Standings\n:")
+    print("\n=== FINAL STANDINGS ===")
     pp(cup.standings())
 
+    print("\n=== Catalog List ===")
+    pp(catalog.list())
 
 
 if __name__ == "__main__":

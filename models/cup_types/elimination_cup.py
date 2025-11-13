@@ -8,6 +8,7 @@ class EliminationCup(Cup):
         self._rematch_enabled = rematch_enabled
         self._standings = {team.name : {"Round": 1, "Won": [], "Lost": []} for team in self._teams}
         self._active_teams = self._teams[:]
+        self.isPlayoff = False
         
     def initialize_games(self):
         self._schedule_round()
@@ -49,6 +50,8 @@ class EliminationCup(Cup):
         pass
 
     def __str__(self):
+        if self.isPlayoff:
+            return "PlayOffs"
         if self._rematch_enabled:
             return "Elimination2Cup"
         return "EliminationCup"
@@ -112,6 +115,5 @@ class EliminationCup(Cup):
                     self.standings()[team.name]["Round"] += 1
                 self._schedule_round()
             else:
-                #print(f"Tournament Winner: {self._active_teams[0].name}")
                 self.standings()[self._active_teams[0].name]["Round"] += 1
-                self._notify({"type": "cup_ended", "cup": self})
+                self._notify({"type": "cup_ended", "cup": self, "winner": self._active_teams[0]})
