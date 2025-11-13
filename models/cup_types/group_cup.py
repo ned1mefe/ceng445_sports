@@ -40,9 +40,6 @@ class GroupCup(Cup):
             group_cup.watch(self)
             group_cup.initialize_games()
             self._notify({"type": "new_group", "cup": self, "group": group_cup})
-        
-        
-
 
     def update(self, event):
 
