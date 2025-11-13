@@ -8,6 +8,10 @@ class Team():
             "year": year,
             "country": country
         }
+        
+        self.observers = set()
+        self.games = [] 
+
         self.numbers = {} # given jersey numbers to players
         self.players = {} # player name to player object
         self._id = str(uuid.uuid4())
@@ -53,3 +57,15 @@ class Team():
     
     def description(self):
         return str(self)
+    
+    def watch(self, obj):
+        if obj:
+            self.observers.add(obj)
+            for game in self.games:
+                game.watch(obj)
+    
+    def unwatch(self, obj):
+        if obj:
+            self.observers.discard(obj)
+            for game in self.games:
+                game.unwatch(obj)

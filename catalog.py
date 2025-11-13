@@ -88,6 +88,8 @@ class Catalog:
         return [(objId, self.objectDict[objId].description()) for objId in self.attachDict[user]] 
 
     def attach(self, id, user):
+        self.objectDict[id].watch(user)
+
         if user in self.attachDict:
             if id not in self.attachDict[user]:
                 self.attachDict[user].append(id)
@@ -95,6 +97,8 @@ class Catalog:
             self.attachDict[user] = [id]
 
     def detach(self, id, user):
+        self.objectDict[id].unwatch(user)
+
         if user in self.attachDict:
             if id in self.attachDict[user]:
                 self.attachDict[user].remove(id)

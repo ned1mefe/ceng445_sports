@@ -7,10 +7,17 @@ class Game():
         self._away_team = away
         self._datetime = datetime
         self._id = str(uuid.uuid4())
+
+        home.games.append(self)
+        away.games.append(self)
+        for observer in home.observers:
+            self.watch(observer)
+        for observer in away.observers:
+            self.watch(observer)
         
         self.is_running = False
         self.is_ended = False
-        self.observers = []
+        self.observers = set()
         self.timeline = []
 
         self._stats = {"Home": {"score": 0},
@@ -92,14 +99,12 @@ class Game():
 
     # --- Observer Methods ---
     def watch(self, obj):
-        if obj not in self.observers:
-            self.observers.append(obj)
+        if obj:
+            self.observers.add(obj)
    
     def unwatch(self, obj):
-        try:
-            self.observers.remove(obj)
-        except ValueError:
-            pass
+        self.observers.discard(obj)
+
 
     def _notify(self, event):
         for obs in self.observers:
