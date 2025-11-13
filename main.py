@@ -38,10 +38,11 @@
     # your score for this component will be capped at 40% of the points (i.e., 10 points max).
 
 from pprint import pp
-from catalog import Catalog
 from datetime import datetime
 import random
-from models.game import Game  # Bu sınıfın Game(home, away, datetime) constructor’ı olduğunu varsayıyorum
+# from models.game import Game  # Bu sınıfın Game(home, away, datetime) constructor’ı olduğunu varsayıyorum
+from catalog import Catalog
+
 
 def main():
     catalog = Catalog()
@@ -51,6 +52,8 @@ def main():
     team3_id = catalog.create(type="team", name="Beşiktaş", year=1903, country="Turkey")
     team4_id = catalog.create(type="team", name="Trabzonspor", year=1903, country="Turkey")
 
+    elim.watch(observer)
+    elim.initialize_games()
 
     print("\n=== CUP CREATION ===")
     cup_id = catalog.create(
