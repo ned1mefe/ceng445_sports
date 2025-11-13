@@ -46,9 +46,6 @@ class Cup():
     def standings(self):
         pass
 
-    def gametree(self):
-        pass
-
     def initialize_games(self):
         pass
 

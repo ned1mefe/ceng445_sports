@@ -52,8 +52,11 @@ def main():
     team3_id = catalog.create(type="team", name="Beşiktaş", year=1903, country="Turkey")
     team4_id = catalog.create(type="team", name="Trabzonspor", year=1903, country="Turkey")
 
-    elim.watch(observer)
-    elim.initialize_games()
+    teams=[catalog.objectDict[team1_id], catalog.objectDict[team2_id], catalog.objectDict[team3_id], catalog.objectDict[team4_id]]
+    
+    for t in teams:
+        t.addplayer(f"Player{t.name}_A",1)
+        t.addplayer(f"Player{t.name}_B",2)
 
     print("\n=== CUP CREATION ===")
     cup_id = catalog.create(
@@ -72,20 +75,22 @@ def main():
 
     # LEAGUE TEST
     print("First Standings\n:")
-    print(cup.standings())
+    pp(cup.standings())
 
    
     print("\n=== START GAMES ===")
+
     for game in cup._games.values():
         game.start()
         game.score(random.randint(0, 5), game._home_team)
         game.score(random.randint(0, 5), game._away_team)
         game.end()
+        pp(game.stats())
+
     print("\nGAMES ENDED\n:")
     
     print("Final Standings\n:")
-    print(cup.standings())
-    # LEAGUE TEST
+    pp(cup.standings())
 
 
 

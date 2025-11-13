@@ -6,12 +6,11 @@ class LeagueCup(Cup):
     def __init__(self, teams, interval, rematch_enabled=False):
         super().__init__(teams, interval)
         self._rematch_enabled = rematch_enabled
-        self._table = {team.name : {"Won": 0, "Draw": 0, "Lost": 0, "Scored": 0, "Conceded": 0, "Average": 0, "Points": 0} for team in self._teams}
+        self._table = {team.name : {"Won": 0, "Draw": 0, "Lost": 0, "Scored": 0, "Conceded": 0, "Diff": 0, "Points": 0} for team in self._teams}
         
         self.pointsWin = 2
         self.pointsDraw = 1
         self.pointsLoss = 0
-        pass
     
     def standings(self):
         return self.score_based_sorting()
@@ -35,7 +34,6 @@ class LeagueCup(Cup):
                 for j, t2 in enumerate(shuffled_teams):
                     if j > i:
                         self._create_game(t2, t1, self._interval)
-        pass
 
     def update(self, event):
         if event["type"] == "game_started":
@@ -80,13 +78,13 @@ class LeagueCup(Cup):
             self._table[winner.name]["Won"] += 1
             self._table[winner.name]["Scored"] += winner_score
             self._table[winner.name]["Conceded"] += loser_score
-            self._table[winner.name]["Average"] = self._table[winner.name]["Scored"] - self._table[winner.name]["Conceded"]
+            self._table[winner.name]["Diff"] = self._table[winner.name]["Scored"] - self._table[winner.name]["Conceded"]
             self._table[winner.name]["Points"] += self.pointsWin
 
             self._table[loser.name]["Lost"] += 1
             self._table[loser.name]["Scored"] += loser_score
             self._table[loser.name]["Conceded"] += winner_score
-            self._table[loser.name]["Average"] = self._table[loser.name]["Scored"] - self._table[loser.name]["Conceded"]
+            self._table[loser.name]["Diff"] = self._table[loser.name]["Scored"] - self._table[loser.name]["Conceded"]
             self._table[loser.name]["Points"] += self.pointsLoss
         
         # there is a draw
@@ -104,15 +102,14 @@ class LeagueCup(Cup):
 
         # all games are ended 
         if all(game.is_ended for game in self._games.values()):
-            sorted_dict = self.score_based_sorting()
-            print(f"League Winner: {sorted_dict[0][0]}")
+            self._notify({"type": "cup_ended", "cup": self})
 
            
     def score_based_sorting(self):
         table_items = self._table.items()
         sorted_items = sorted(
             table_items,
-            key=lambda item: (-item[1]["Points"], -item[1]["Average"]),
+            key=lambda item: (-item[1]["Points"], -item[1]["Diff"]),
         )
         
         return sorted_items
