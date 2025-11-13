@@ -1,10 +1,8 @@
 import pytest
+from datetime import datetime
 from models.game import Game
+from models.team import Team
 
-class DummyTeam:
-    def __init__(self, name, players=None):
-        self.name = name
-        self.players = players or {}
 
 class DummyObserver:
     def __init__(self):
@@ -16,9 +14,15 @@ class DummyObserver:
 
 @pytest.fixture
 def basic_game():
-    home = DummyTeam("TeamA", players={"Alice": 0, "Bob": 0})
-    away = DummyTeam("TeamB", players={"Carol": 0, "Dave": 0})
-    return Game(home, away, "2025-01-01 20:00")
+    home = Team("TeamA")
+    away = Team("TeamB")
+
+    home.addplayer("Alice", 1)
+    home.addplayer("Bob", 2)
+    away.addplayer("Carol", 3)
+    away.addplayer("Dave", 4)
+
+    return Game(home, away, datetime(2025, 1, 1, 20, 0))
 
 
 def test_initialization_sets_correct_fields(basic_game):
@@ -91,7 +95,8 @@ def test_score_updates_stats_and_timeline(basic_game):
 
 
 def test_score_with_invalid_team_or_player_raises(basic_game):
-    rogue_team = DummyTeam("Intruder", players={"Hacker": 0})
+    rogue_team = Team("Intruder")
+    rogue_team.addplayer("Hacker", 1)
     home = basic_game.home()
     basic_game.start()
 
@@ -150,9 +155,8 @@ def test_str_and_description(basic_game):
 
 
 def test_init_with_missing_players_gracefully_handles():
-    # Missing players should not raise errors
-    home = DummyTeam("SoloTeam")
-    away = DummyTeam("Opponent")
-    game = Game(home, away, "2025-01-01 20:00")
+    home = Team("SoloTeam")
+    away = Team("Opponent")
+    game = Game(home, away, datetime(2025, 1, 1, 20, 0))
     assert "score" in game._stats["Home"]
     assert "score" in game._stats["Away"]
