@@ -14,7 +14,7 @@ class Cup():
         results = []
 
         nameFilter = lambda game: game.home().name == tname or game.away().name == tname
-        groupFilter = lambda game: True # TODO: fix after adding groups
+        
         dateFilter = lambda game: (between[0] <= game._datetime <= between[1])
 
         filters = []
@@ -22,9 +22,9 @@ class Cup():
         if tname is not None:
             filters.append(nameFilter)
         if group is not None:
-            if self.description() != "GroupCup":
-                raise ValueError("Cannot filter by group in non-group cup type")
-            filters.append(lambda team: True)
+            #this is valid, group cup overrides this method
+            raise ValueError("Cannot filter by group in non-group cup type")
+            
         if between is not None:
             filters.append(dateFilter)
 

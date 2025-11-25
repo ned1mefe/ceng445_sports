@@ -17,8 +17,8 @@ class GroupCup(Cup):
         if len(teams) < self._playOffCount:
             raise ValueError("Not enough teams for PlayOffs in GroupCup")
 
-        self._groups = {}  # Group name -> list of teams
-        self._playOffs = None  # To be implemented later
+        self._groups = {}  # Group name -> LeagueCup object
+        self._playOffs = None
 
     def initialize_games(self):
         self.initialize_groups()
@@ -39,6 +39,7 @@ class GroupCup(Cup):
             group_cup._groupName = group_name
             group_cup.watch(self)
             group_cup.initialize_games()
+            self._games.update(group_cup._games)
             self._notify({"type": "new_group", "cup": self, "group": group_cup})
 
     def update(self, event):
@@ -106,6 +107,16 @@ class GroupCup(Cup):
     
     def gametree(self):
         pass
+
+    def search(self, tname=None, group=None, between=None):
+        if group is not None:
+            if group in self._groups:
+                return self._groups[group].search(tname=tname, between=between)                
+            else:
+                raise ValueError("Group not found")
+        else:
+            return super().search(tname=tname, between=between)
+        
 
     def __str__(self):
         if self._rematch_enabled:

@@ -114,6 +114,12 @@ def main():
             game.score(random.randint(0, 4), game._away_team)
             game.end()
 
+    print("\n=== Search ===")
+    for i in cup.search(group="D"):
+        print(i.description())
+    print()
+    print()
+
     print("\n=== FINAL STANDINGS ===")
     pp(cup.standings())
 
