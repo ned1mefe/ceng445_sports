@@ -19,22 +19,50 @@ class LeagueCup(Cup):
     def gametree(self):
         pass
 
-    # called once 
     def initialize_games(self):
-        shuffled_teams = self._teams[:]
-        shuffle(shuffled_teams) # shuffled for unfair home advantage in League1 format
-
-        for i, t1 in enumerate(shuffled_teams):
-            for j, t2 in enumerate(shuffled_teams):
-                if j > i:
-                    self._create_game(t1, t2, self._interval)
+        rotation_list = self._teams[:]
+        shuffle(rotation_list)
         
-        # home - away switched so it is balanced 
+        if len(rotation_list) % 2 != 0:
+            rotation_list.append(None)
+
+        num_teams = len(rotation_list)
+        num_rounds = num_teams - 1
+        half_size = num_teams // 2
+        
+        all_rounds = []
+
+        for _ in range(num_rounds):
+            this_round_matches = []
+            
+            for i in range(half_size):
+                t1 = rotation_list[i]
+                t2 = rotation_list[num_teams - 1 - i]
+
+                if t1 is not None and t2 is not None:
+                    this_round_matches.append((t1, t2))
+            
+            all_rounds.append(this_round_matches)
+            rotation_list.insert(1, rotation_list.pop())
+
         if self._rematch_enabled:
-            for i, t1 in enumerate(shuffled_teams):
-                for j, t2 in enumerate(shuffled_teams):
-                    if j > i:
-                        self._create_game(t2, t1, self._interval)
+            second_half = []
+            for round_matches in all_rounds:
+                rematch_round = []
+                for home, away in round_matches:
+                    rematch_round.append((away, home)) 
+                second_half.append(rematch_round)
+            
+            all_rounds.extend(second_half)
+        
+        current_time_offset = 0 
+        
+        for round_matches in all_rounds:
+            for home, away in round_matches:
+                self._create_game(home, away, current_time_offset)
+            
+            ## Only increase time AFTER the whole round is scheduled
+            # current_time_offset += self._interval
 
     def update(self, event):
         if event["type"] == "game_started":
