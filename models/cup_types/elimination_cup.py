@@ -91,7 +91,7 @@ class EliminationCup(Cup):
                 rematch_score_away = rematch.stats()["Away"]["Pts"]
 
                 if score_home + rematch_score_away > score_away + rematch_score_home:
-                    loser = game.away
+                    loser = game.away()
                     self._active_teams.remove(loser)
 
                 elif score_home + rematch_score_away < score_away + rematch_score_home:
