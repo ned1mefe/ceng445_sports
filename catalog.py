@@ -106,6 +106,10 @@ class Catalog:
                 raise ValueError()
         else:
             raise ValueError()
+        
+    def detachAll(self, user):
+        for objId in self.attachDict[user]:
+            self.detach(objId, user)
 
     def delete(self, id):
         if id not in self.objectDict:
