@@ -3,15 +3,18 @@ import pickle
 import queue
 import shlex
 import threading
-from server import catalog, catalog_lock, DATA_FILE
 
 class Session(threading.Thread):
-    def __init__(self, sock, addr):
+    def __init__(self, sock, addr,catalog,catalog_lock,datafile):
         super().__init__()
         self.sock = sock
         self.addr = addr
         self.username = "Guest"
         self.running = True
+
+        self.catalog = catalog
+        self.catalog_lock = catalog_lock
+        self.DATA_FILE = datafile
         
         self.msg_queue = queue.Queue()
 
@@ -74,7 +77,7 @@ class Session(threading.Thread):
             self.send_message("ERROR: Invalid command format")
             return
 
-        with catalog_lock: 
+        with self.catalog_lock: 
             try:
                 response = "OK"
                 
@@ -84,7 +87,7 @@ class Session(threading.Thread):
                 
                 elif cmd == "CREATE_TEAM":
                     # Usage: CREATE_TEAM <Name> <Year> <Country>
-                    tid = catalog.create(type="team", name=args[0], year=args[1], country=args[2])
+                    tid = self.catalog.create(type="team", name=args[0], year=args[1], country=args[2])
                     response = f"Team Created. ID: {tid}"
 
                 # Usage: CREATE_GAME <HomeID> <AwayID> "YYYY-MM-DD HH:MM"
@@ -114,26 +117,26 @@ class Session(threading.Thread):
                     response = f"{cup_type} Created. ID: {cid}"
 
                 elif cmd == "LIST":
-                    items = catalog.list() # List of (id, desc)
+                    items = self.catalog.list() # List of (id, desc)
                     response = "\n".join([f"{i[0]}: {i[1]}" for i in items])
 
                 elif cmd == "WATCH":
                     # watch <id>
                     obj_id = args[0]
-                    catalog.attach(obj_id, self) # session is the observer
+                    self.catalog.attach(obj_id, self) # session is the observer
                     response = f"Watching {obj_id}"
 
                 elif cmd == "START":
                     # start <game_id>
-                    game = catalog.objectDict[args[0]]
+                    game = self.catalog.objectDict[args[0]]
                     game.start()
                     response = "Game Started"
 
                 elif cmd == "SCORE":
                     # score <game_id> <points> <team_id> <
-                    game = catalog.objectDict[args[0]]
+                    game = self.catalog.objectDict[args[0]]
                     pts = args[1]
-                    team = catalog.objectDict[args[2]]
+                    team = self.catalog.objectDict[args[2]]
                     player = args[3] if len(args) > 3 else None
 
                     game.score(pts,team,player)
@@ -161,9 +164,9 @@ class Session(threading.Thread):
         print(f"Disconnecting {self.addr}")
         self.running = False
         self.sock.close()
-        with catalog_lock:
-            catalog.detachAll(self)
+        with self.catalog_lock:
+            self.catalog.detachAll(self)
     
     def save_state(self):
-        with open(DATA_FILE, 'wb') as f:
-            pickle.dump(catalog, f)
+        with open(self.DATA_FILE, 'wb') as f:
+            pickle.dump(self.catalog, f)
