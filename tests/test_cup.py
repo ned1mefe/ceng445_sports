@@ -24,13 +24,13 @@ def sample_teams():
 
 @pytest.fixture
 def sample_interval():
-    return [datetime.datetime(2025, 1, 1), datetime.datetime(2025, 12, 31)]
+    return datetime.timedelta(days=1)
 
 
 
 def test_cup_create_game_and_access(sample_teams, sample_interval):
     cup = Cup(sample_teams, sample_interval)
-    game = cup._create_game(sample_teams[0], sample_teams[1], sample_interval[0])
+    game = cup._create_game(sample_teams[0], sample_teams[1])
 
     # game should be stored by ID and retrievable
     assert cup[game.id()] is game
@@ -67,8 +67,8 @@ def test_cup_notify_triggers_observer(sample_teams, sample_interval):
 
 def test_cup_search_by_team_name(sample_teams, sample_interval):
     cup = Cup(sample_teams, sample_interval)
-    g1 = cup._create_game(sample_teams[0], sample_teams[1], sample_interval[0])
-    g2 = cup._create_game(sample_teams[2], sample_teams[3], sample_interval[0])
+    g1 = cup._create_game(sample_teams[0], sample_teams[1])
+    g2 = cup._create_game(sample_teams[2], sample_teams[3])
 
     result = cup.search(tname="Team1")
     assert g1 in result
@@ -78,15 +78,20 @@ def test_cup_search_by_team_name(sample_teams, sample_interval):
 def test_search_between_filter(sample_teams, sample_interval):
     cup = Cup(sample_teams, sample_interval)
 
-    past_date = datetime.datetime(2024, 6, 15)
-    old_game = cup._create_game(sample_teams[0], sample_teams[1], past_date)
+    game1 = cup._create_game(sample_teams[0], sample_teams[1])
+    game2 = cup._create_game(sample_teams[2], sample_teams[3])  
 
-    valid_date = datetime.datetime(2025, 6, 15)
-    valid_game = cup._create_game(sample_teams[2], sample_teams[3], valid_date)
+    start = datetime.datetime.now()
+    end = start + datetime.timedelta(days=5)
 
-    result = cup.search(between=sample_interval)
+    result = cup.search(between=(start, end))
 
-    assert valid_game in result
-    assert old_game not in result
+    assert game1 in result
+    assert game2 in result
 
+    cheating_game = cup._create_game(sample_teams[1], sample_teams[2])
+    cheating_game._datetime = start - datetime.timedelta(days=1) 
 
+    updated_result = cup.search(between=(start, end))
+
+    assert cheating_game not in updated_result

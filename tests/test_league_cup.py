@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
 from models.team import Team
 from models.cup_types.league_cup import LeagueCup
 
@@ -22,7 +22,7 @@ def sample_teams():
 
 @pytest.fixture
 def sample_interval():
-    return (datetime.timedelta(days=1))
+    return (timedelta(days=1))
 
 
 def test_leaguecup_initialization(sample_teams, sample_interval):

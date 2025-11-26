@@ -1,7 +1,7 @@
 from cmath import log
 from math import ceil
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
 from models.cup_types.group_cup import GroupCup
 from models.team import Team
 
@@ -25,7 +25,7 @@ def sample_teams():
 
 @pytest.fixture
 def sample_interval():
-    return (datetime.timedelta(days=1))
+    return (timedelta(days=1))
 
 
 def test_groupcup_initialization(sample_teams, sample_interval):
