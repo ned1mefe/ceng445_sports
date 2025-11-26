@@ -1,9 +1,7 @@
 from pprint import pp
-from datetime import datetime
 import random
-import time
 from catalog import Catalog
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 def main():
     catalog = Catalog()

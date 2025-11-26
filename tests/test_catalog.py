@@ -18,9 +18,10 @@ def sample_team_ids(sample_catalog):
     return [t1, t2]
 
 
+
 @pytest.fixture
 def sample_interval():
-    return [datetime.datetime(2025, 1, 1), datetime.datetime(2025, 12, 31)]
+    return (datetime.timedelta(days=1))
 
 
 class DummyUser:

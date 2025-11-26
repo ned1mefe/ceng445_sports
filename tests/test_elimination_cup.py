@@ -22,7 +22,7 @@ def sample_teams():
 
 @pytest.fixture
 def sample_interval():
-    return (datetime.datetime(2025, 1, 1), datetime.datetime(2025, 12, 31))
+    return (datetime.timedelta(days=1))
 
 
 def test_eliminationcup_initialization(sample_teams, sample_interval):
