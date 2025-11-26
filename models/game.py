@@ -7,6 +7,7 @@ class Game():
         self._away_team = away
         self._datetime = dt
         self._id = str(uuid.uuid4())
+        self.observers = set()
 
         home.games.append(self)
         away.games.append(self)
@@ -17,7 +18,6 @@ class Game():
         
         self.is_running = False
         self.is_ended = False
-        self.observers = set()
         self.timeline = []
 
         self._stats = {"Home": {"score": 0},
