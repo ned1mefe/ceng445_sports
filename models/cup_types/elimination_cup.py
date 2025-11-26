@@ -23,12 +23,12 @@ class EliminationCup(Cup):
 
         for i in range(0, len(shuffled_teams), 2):
             if i + 1 < len(shuffled_teams):
-                self._create_game(shuffled_teams[i], shuffled_teams[i+1], self._interval[0]) #placeholder datetime
+                self._create_game(shuffled_teams[i], shuffled_teams[i+1]) 
 
         if self._rematch_enabled:
             for i in range(0, len(shuffled_teams), 2):
                 if i + 1 < len(shuffled_teams):
-                    self._create_game(shuffled_teams[i+1], shuffled_teams[i], self._interval[0]) #placeholder datetime
+                    self._create_game(shuffled_teams[i+1], shuffled_teams[i]) 
 
     def update(self, event):
         if event["type"] == "game_started":

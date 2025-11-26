@@ -55,11 +55,10 @@ class LeagueCup(Cup):
             
             all_rounds.extend(second_half)
         
-        current_time_offset = 0 
         
         for round_matches in all_rounds:
             for home, away in round_matches:
-                self._create_game(home, away, current_time_offset)
+                self._create_game(home, away)
             
             ## Only increase time AFTER the whole round is scheduled
             # current_time_offset += self._interval

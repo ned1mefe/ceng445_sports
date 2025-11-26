@@ -1,6 +1,7 @@
 from random import shuffle
 import uuid
 from models.game import Game
+from datetime import datetime
 
 class Cup():
     def __init__(self, teams, interval):
@@ -9,6 +10,8 @@ class Cup():
         self.observers = set()
         self._games = {}  # gameId -> Game object
         self._id = str(uuid.uuid4())
+        self._start_date = datetime.now()
+        self._last_game_date = self._start_date
 
     def search(self, tname=None, group=None, between=None):
         results = []
@@ -67,8 +70,10 @@ class Cup():
     def update(self, event):
         pass
         
-    def _create_game(self, team1, team2, datetime):
-        game = Game(team1, team2, datetime)
+    def _create_game(self, team1, team2):
+        game_date = self._last_game_date + self._interval
+        self._last_game_date = game_date
+        game = Game(team1, team2, game_date)
         self._games[game.id()] = game
 
         game.watch(self)  # Cup observes the game for events

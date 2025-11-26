@@ -1,52 +1,13 @@
-# 1. Implementation - Correction (55 points):
-    # A. General Mehods (20 points)
-    # * create(**kw) - 3
-    # * list() - 2
-    # * listattached(user) - 2
-    # * attach(id, user) - 2
-    # * detach(id, user) - 2
-    # * delete(id) - 4
-    # * observer notifications work correctly - 5
-
-    # B. General CRUD (10 points)
-    # - For each class:
-    #     * Constructor - 5
-    #     * delete() - 5
-
-    # * Team Class (2 points)
-    #     * __setitem__(key, value), __getattr__(key), __delattr__(key) - 1
-    #     * addplayer(name, no), delplayer(name) - 1
-    # * Game Class (8 points)
-    #     * id(), home(), away() properties - 1
-    #     * start(), pause(), resume(), end() - 1
-    #     * score(points, team, player) - 1
-    #     * stats() - 5
-    # * Cup Class (9 points)
-    #     * search(tname, group, between) - 4
-    #     * __getitem__(gameid) - 1
-    #     * gametree() - 1
-    #     * standing() - 3
-    # * each individual game type logics were implemented correctly - (6 points)
-
-
-# 2.Unit Tests (20 points)
-    # * Write tests that cover all implemented methods and edge cases.
-
-# 3. Individual Understanding (25 points)
-    # * You are expected to explain your code during your grading session.
-    # * If you cannot adequately explain your work, even if your code functions correctly, 
-    # your score for this component will be capped at 40% of the points (i.e., 10 points max).
-
 from pprint import pp
 from datetime import datetime
 import random
+import time
 from catalog import Catalog
-
+from datetime import timedelta, datetime
 
 def main():
     catalog = Catalog()
 
-    print("\n=== TEAM CREATION ===")
     team_names = [
         "Galatasaray", "Fenerbahçe", "Beşiktaş", "Trabzonspor",
         "Bursaspor", "Başakşehir", "Adana Demirspor", "Sivasspor",
@@ -64,28 +25,23 @@ def main():
         t.addplayer(f"{t.name}_A", 1)
         t.addplayer(f"{t.name}_B", 2)
 
-    print("\n=== CUP CREATION ===")
+    
     cup_id = catalog.create(
         type="cup",
         cup_type="GROUP",
         teams=team_ids,
-        interval=(datetime.now(), datetime.now())
+        interval=(timedelta(days=1)),
     )
-    print(f"Cup created with ID: {cup_id}")
     cup = catalog.objectDict[cup_id]
-    
-    # CATALOG LIST
-    print("\nCATALOG LIST\n")
-    pp(catalog.list())
 
-    # INITIAL STANDINGS
-    print("\n=== INITIAL STANDINGS ===")
-    pp(cup.standings())
 
-    print("\n=== SIMULATING GROUP STAGE GAMES ===")
+   
     for group_name, group_cup in cup._groups.items():
         print(f"\n--- GROUP {group_name} ---")
         for game in group_cup._games.values():
+            # Skip the test game since it is already ended
+            if game.is_ended:
+                continue  
             game.start()
             game.score(random.randint(0, 3), game._home_team)
             game.score(random.randint(0, 3), game._away_team)
@@ -96,35 +52,54 @@ def main():
     # Playoffs automatically triggered after all groups end
     if cup._playOffs:
         print("\n=== PLAYOFF STAGE STARTED ===")
-        for game in list(cup._playOffs._games.values()):
-            game.start()
-            game.score(random.randint(0, 4), game._home_team)
-            game.score(random.randint(0, 4), game._away_team)
-            game.end()
         
-        for game in list(l for l in cup._playOffs._games.values() if l.is_ended is False):
-            game.start()
-            game.score(random.randint(0, 4), game._home_team)
-            game.score(random.randint(0, 4), game._away_team)
-            game.end()
-        
-        for game in list(l for l in cup._playOffs._games.values() if l.is_ended is False):
-            game.start()
-            game.score(random.randint(0, 4), game._home_team)
-            game.score(random.randint(0, 4), game._away_team)
-            game.end()
+        # We use a loop to handle rounds dynamically as winners advance
+        round_counter = 1
+        while True:
+            # Get current active games that haven't ended
+            active_games = [g for g in cup._playOffs._games.values() if not g.is_ended]
+            
+            if not active_games:
+                break
+                
+            print(f"\n--- Playoff Round {round_counter} ({len(active_games)} games) ---")
+            
+            for game in active_games:
+                game.start()
+                game.score(random.randint(0, 4), game._home_team)
+                game.score(random.randint(0, 4), game._away_team)
+                game.end()
+            
+            # Check if cup has ended (only 1 active team left) or no new games generated
+            if len(cup._playOffs._active_teams) <= 1:
+                break
+            
+            round_counter += 1
+
 
     print("\n=== Search ===")
-    for i in cup.search(group="D"):
-        print(i.description())
+    results = cup.search(group="C")
+    if results:
+        for i in results:
+            print(i.description())
+    else:
+        print("No games found for Group C.")
+    print()
+    print()
+
+
+    print("\n=== Search ===")
+    results = cup.search(group="D")
+    if results:
+        for i in results:
+            print(i.description())
+    else:
+        print("No games found for Group D.")
     print()
     print()
 
     print("\n=== FINAL STANDINGS ===")
     pp(cup.standings())
-
-    print("\n=== Catalog List ===")
-    pp(catalog.list())
 
 
 if __name__ == "__main__":

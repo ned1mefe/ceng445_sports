@@ -1,11 +1,11 @@
 import uuid
-import time 
+from datetime import datetime, timedelta
 
 class Game():
-    def __init__(self, home, away, datetime):
+    def __init__(self, home, away, dt):
         self._home_team = home
         self._away_team = away
-        self._datetime = datetime
+        self._datetime = dt
         self._id = str(uuid.uuid4())
 
         home.games.append(self)
@@ -23,17 +23,21 @@ class Game():
         self._stats = {"Home": {"score": 0},
                       "Away": {"score": 0}}
 
+        # Time tracking attributes
+        self._elapsed_time = timedelta(0)
+        self._last_start_time = None
+
         try:
             for player_name in home.players:
                     self._stats["Home"][player_name] = 0
         except AttributeError:
-            print(f"Team {home.name} does not contain players")
+            pass # Team might not have players initialized yet
             
         try:
             for player_name in away.players:
                     self._stats["Away"][player_name] = 0
         except AttributeError:
-            print(f"Team {away.name} does not contain players")
+            pass
 
     def id(self):
         return self._id
@@ -44,6 +48,22 @@ class Game():
     def away(self):
         return self._away_team
     
+    def _get_current_game_time(self):
+        """Calculates the current game time based on elapsed and running time."""
+        if self.is_running:
+            current_run = datetime.now() - self._last_start_time
+            return self._elapsed_time + current_run
+        return self._elapsed_time
+
+    def _format_time(self, td):
+        """Formats a timedelta into MM:SS.s string."""
+        total_seconds = int(td.total_seconds())
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        # Get tenths of a second
+        tenths = int(td.microseconds / 100000)
+        return f"{minutes:02}:{seconds:02}.{tenths}"
+
     def start(self):
         if self.is_running:
             raise ValueError("Game already started")
@@ -51,12 +71,16 @@ class Game():
             raise ValueError("Game has already ended")
         
         self.is_running = True
+        self._last_start_time = datetime.now()
         self._notify({"type": "game_started", "game": self})
 
     def pause(self):
         if not self.is_running:
             raise ValueError("Game is not running")
         
+        # Accumulate elapsed time
+        self._elapsed_time += datetime.now() - self._last_start_time
+        self._last_start_time = None
         self.is_running = False
         self._notify({"type": "game_paused", "game": self})
 
@@ -67,17 +91,22 @@ class Game():
             raise ValueError("Game has already ended")
         
         self.is_running = True
+        self._last_start_time = datetime.now()
         self._notify({"type": "game_resumed", "game": self})
 
     def end(self):
         if self.is_ended:
             raise ValueError("Game has already ended")
 
-        self.is_running = False
+        if self.is_running:
+            self._elapsed_time += datetime.now() - self._last_start_time
+            self._last_start_time = None
+            self.is_running = False
+
         self.is_ended = True 
         self._notify({"type": "game_ended", "game": self})
     
-    def score(self, points, team, player = None):
+    def score(self, points, team, player=None):
         if team.name == self._home_team.name:
             team_key = "Home"
         elif team.name == self._away_team.name:
@@ -92,8 +121,9 @@ class Game():
         if player:
             self._stats[team_key][player] += points 
         
-        game_time_str = "00:00.0" # placeholder
-        self.timeline.append( (game_time_str, team_key, player, points) ) 
+        # Capture current game time for the timeline
+        current_time_str = self._format_time(self._get_current_game_time())
+        self.timeline.append((current_time_str, team_key, player, points)) 
 
         self._notify({"type": "score", "game": self, "team": team, "player": player, "points": points})
 
@@ -104,7 +134,6 @@ class Game():
    
     def unwatch(self, obj):
         self.observers.discard(obj)
-
 
     def _notify(self, event):
         for obs in self.observers:
@@ -123,7 +152,7 @@ class Game():
         if self.is_ended:
             game_time_str = "Full Time"
         else:
-            game_time_str = "00:00.0" # Placeholder
+            game_time_str = self._format_time(self._get_current_game_time())
 
         return {
             "Home": {
@@ -141,7 +170,7 @@ class Game():
         }
         
     def __str__(self):
-        return f"Game: {self._home_team.name} vs {self._away_team.name}"
+        return f"Game: {self._home_team.name} vs {self._away_team.name} at {self._datetime.strftime('%Y-%m-%d %H:%M')}"
     
     def description(self):
         return str(self)
