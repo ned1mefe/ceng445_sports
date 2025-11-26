@@ -101,15 +101,13 @@ class Catalog:
 
         if user in self.attachDict:
             if id in self.attachDict[user]:
-                self.attachDict[user].remove(id)
-            else:
-                raise ValueError()
-        else:
-            raise ValueError()
+                self.attachDict[user].discard(id)
+
         
     def detachAll(self, user):
-        for objId in self.attachDict[user]:
-            self.detach(objId, user)
+        if user in self.attachDict:
+            for objId in self.attachDict[user]:
+                self.detach(objId, user)
 
     def delete(self, id):
         if id not in self.objectDict:

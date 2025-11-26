@@ -40,7 +40,7 @@ if __name__ == "__main__":
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
     # Allow immediate reuse of the port (prevents "Address already in use" errors after restart)
-    # server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         server_socket.bind((HOST, PORT))
         server_socket.listen(10)
@@ -53,7 +53,10 @@ if __name__ == "__main__":
 
             session_thread = Session(
                 sock=client_sock, 
-                addr=addr, 
+                addr=addr,
+                catalog=catalog,
+                catalog_lock=catalog_lock,
+                datafile=DATA_FILE
             )
             session_thread.start()
 

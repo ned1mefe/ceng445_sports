@@ -42,7 +42,8 @@ class Session(threading.Thread):
             except Exception as e:
                 print(f"Error: {e}")
                 break
-        
+            
+            
         self.cleanup()
 
     def notification_agent(self):
@@ -135,7 +136,7 @@ class Session(threading.Thread):
                 elif cmd == "SCORE":
                     # score <game_id> <points> <team_id> <
                     game = self.catalog.objectDict[args[0]]
-                    pts = args[1]
+                    pts = int(args[1])
                     team = self.catalog.objectDict[args[2]]
                     player = args[3] if len(args) > 3 else None
 
