@@ -2,6 +2,7 @@ import socket
 import threading
 import pickle
 import os
+import sys
 from session import Session
 from catalog import Catalog
 
@@ -58,6 +59,7 @@ if __name__ == "__main__":
                 catalog_lock=catalog_lock,
                 datafile=DATA_FILE
             )
+            session_thread.daemon = True # when server exits, threads exit too
             session_thread.start()
 
     except KeyboardInterrupt:
@@ -67,3 +69,4 @@ if __name__ == "__main__":
     finally:
         save_state_on_exit()
         server_socket.close()
+        sys.exit(0)
