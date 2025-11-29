@@ -134,7 +134,7 @@ class Session(threading.Thread):
                     response = "Game Started"
 
                 elif cmd == "SCORE":
-                    # score <game_id> <points> <team_id> <
+                    # score <game_id> <points> <team_id> <playername>
                     game = self.catalog.objectDict[args[0]]
                     pts = int(args[1])
                     team = self.catalog.objectDict[args[2]]

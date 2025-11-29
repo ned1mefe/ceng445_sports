@@ -174,3 +174,11 @@ class Game():
     
     def description(self):
         return str(self)
+    
+    def __getstate__(self):
+        return {k: v for (k, v) in self.__dict__.items() if k != "observers"}
+    
+    
+    def __setstate__(self, state):
+        self.observers = []
+        self.__dict__.update(state)

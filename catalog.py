@@ -136,3 +136,21 @@ class Catalog:
         if event["type"] == "new_group":
             group = event["group"]
             self.objectDict[group.id()] = group
+
+
+    def __getstate__(self):
+        return {
+            "objectDict": self.objectDict
+        }
+
+
+    def __setstate__(self, state):
+        self.objectDict = state["objectDict"]
+        self.attachDict = {}
+
+        self._restore_cup_observers()
+    
+    def _restore_cup_observers(self):
+        for obj in self.objectDict.values():
+            if str(obj)[-3:] == "Cup":
+                obj.watch(self)

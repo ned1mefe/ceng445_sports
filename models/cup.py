@@ -84,4 +84,19 @@ class Cup():
     def description(self):
         return str(self)
     
+        
+    def __getstate__(self):
+        return {k: v for (k, v) in self.__dict__.items() if k != "observers"}
+    
+    
+    def __setstate__(self, state):
+        self.observers = []
+        self.__dict__.update(state)
+
+        self._restore_observers()
+
+    def _restore_observers(self):
+        for game in self._games:
+            game.watch(self)
+    
     

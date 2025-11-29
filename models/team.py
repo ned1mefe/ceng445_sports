@@ -69,3 +69,11 @@ class Team():
             self.observers.discard(obj)
             for game in self.games:
                 game.unwatch(obj)
+    
+    def __getstate__(self):
+        return {k: v for (k, v) in self.__dict__.items() if k != "observers"}
+    
+    def __setstate__(self, state):
+        self.observers = []
+        self.__dict__.update(state)
+    

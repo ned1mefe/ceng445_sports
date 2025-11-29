@@ -122,3 +122,10 @@ class GroupCup(Cup):
         if self._rematch_enabled:
             return "Group2Cup"
         return "GroupCup"
+    
+    def _restore_observers(self):
+        for group in self._groups.values():
+            group.watch(self)
+            
+        if self._playOffs:
+            self._playOffs.watch()
