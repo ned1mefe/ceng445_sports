@@ -74,6 +74,6 @@ class Team():
         return {k: v for (k, v) in self.__dict__.items() if k != "observers"}
     
     def __setstate__(self, state):
-        self.observers = []
+        self.observers = set()
         self.__dict__.update(state)
     

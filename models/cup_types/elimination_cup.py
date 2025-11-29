@@ -38,7 +38,6 @@ class EliminationCup(Cup):
         elif event["type"] == "game_resumed":
             pass
         elif event["type"] == "game_ended":
-            self._notify(event)
             self.handleGameEnd(event)
         elif event["type"] == "score":
             pass
@@ -77,6 +76,7 @@ class EliminationCup(Cup):
         self.standings()[loser.name]["Lost"].append((winner.name, loser_score, winner_score))
 
         if not self._rematch_enabled:
+            self.standings()[winner.name]["Round"] += 1
             self._active_teams.remove(loser)
 
         else:
@@ -92,28 +92,34 @@ class EliminationCup(Cup):
 
                 if score_home + rematch_score_away > score_away + rematch_score_home:
                     loser = game.away()
+                    self.standings()[game.home().name]["Round"] += 1
                     self._active_teams.remove(loser)
 
                 elif score_home + rematch_score_away < score_away + rematch_score_home:
                     loser = game.home()
+                    self.standings()[game.away().name]["Round"] += 1
                     self._active_teams.remove(loser)
 
                 else: #total score is tied, away score is the tiebreaker
                     
                     if score_away > rematch_score_away:
                         loser = game.home()
+                        self.standings()[game.away().name]["Round"] += 1
                         self._active_teams.remove(loser)
                     
                     # also away score is tied, pick randomly
                     else: 
                         loser = choice([game.home(), game.away()])
+                        if loser.name == game.home().name:
+                            self.standings()[game.away().name]["Round"] += 1
+                        else:
+                            self.standings()[game.home().name]["Round"] += 1
+
                         self._active_teams.remove(loser)
+                        
 
         if all(game.is_ended for game in self._games.values()):
             if len(self._active_teams) > 1:
-                for team in self._active_teams:
-                    self.standings()[team.name]["Round"] += 1
                 self._schedule_round()
             else:
-                self.standings()[self._active_teams[0].name]["Round"] += 1
                 self._notify({"type": "cup_ended", "cup": self, "winner": self._active_teams[0]})

@@ -22,8 +22,10 @@ class Catalog:
         raise ValueError("Cannot resolve team: must be an active team id")
 
     def _create_team(self, **kw):
-        return Team(kw['name'], kw['year'], kw['country'])
-
+        team = Team(kw['name'], kw['year'], kw['country'])
+        team.watch(self) 
+        return team
+    
     def _create_game(self, **kw):
         try:
             home = self._resolve_team(kw['home'])
@@ -31,7 +33,9 @@ class Catalog:
             dt = kw['datetime']
         except KeyError as e:
             raise ValueError(f"Missing required argument for game: {e.args[0]}")
-        return Game(home, away, dt)
+        game = Game(home, away, dt)
+        game.watch(self)
+        return game
 
     def _create_cup(self, **kw):
         try:
@@ -101,7 +105,7 @@ class Catalog:
 
         if user in self.attachDict:
             if id in self.attachDict[user]:
-                self.attachDict[user].discard(id)
+                self.attachDict[user].remove(id)
 
         
     def detachAll(self, user):

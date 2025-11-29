@@ -1,0 +1,12 @@
+create_team a 1 1 
+create_team b 1 1
+create_team c 1 1
+create_team d 1 1
+create_team e 1 1
+create_team f 1 1
+create_team g 1 1
+create_team h 1 1
+
+
+
+9a64feab-b05f-4cf1-acbf-96bbea8b6104 c18ba407-8fdd-43b4-8148-d0d8e82d4a53 c101bca0-ef98-4377-b0bb-7cdb1bc9f8c9 29bcf2ac-c980-4bc0-b144-b12e6a872607 2eefdf79-8c17-4da1-9c1f-521a82312e40 2bd0121c-9907-43f9-943f-2a297ebecee0 4040c3ae-b137-454a-a323-99674988f68a 6f4973d7-6e6e-44a8-a07c-c7d3f6abfee2

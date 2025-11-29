@@ -89,7 +89,7 @@ def test_groupcup_observer_notifications(sample_teams, sample_interval):
                 game.score(3, game.home(), list(game.home().players.keys())[0])
                 game.score(2, game.away(), list(game.away().players.keys())[0])
                 game.end()
-    assert obs.events and obs.events[-1]["type"] == "cup_ended"
+    assert obs.events and (obs.events[-1]["type"] == "cup_ended" or obs.events[-2]["type"] == "cup_ended")
 
 
 def test_groupcup_playoff_selection_logic(sample_teams, sample_interval):

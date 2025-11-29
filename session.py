@@ -3,6 +3,7 @@ import pickle
 import queue
 import shlex
 import threading
+import pprint
 
 class Session(threading.Thread):
     def __init__(self, sock, addr,catalog,catalog_lock,datafile):
@@ -96,9 +97,9 @@ class Session(threading.Thread):
                     if len(args) < 3: raise ValueError("Usage: CREATE_GAME <home_id> <away_id> <datetime>")
                     home_id = args[0]
                     away_id = args[1]
-                    dt_str = args[2]
+                    dt_str = args[2] if len(args) == 3 else None
 
-                    dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+                    dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M") if dt_str else datetime.now()
                     
                     gid = self.catalog.create(type="game", home=home_id, away=away_id, datetime=dt)
                     response = f"Game Created. ID: {gid}"
@@ -132,6 +133,32 @@ class Session(threading.Thread):
                     game = self.catalog.objectDict[args[0]]
                     game.start()
                     response = "Game Started"
+                elif cmd == "PAUSE":
+                    # start <game_id>
+                    game = self.catalog.objectDict[args[0]]
+                    game.pause()
+                    response = "Game Paused"
+                elif cmd == "RESUME":
+                    # start <game_id>
+                    game = self.catalog.objectDict[args[0]]
+                    game.resume()
+                    response = "Game Resumed"
+                elif cmd == "END":
+                    # start <game_id>
+                    game = self.catalog.objectDict[args[0]]
+                    game.end()
+                    response = "Game Ended"
+                elif cmd == "STATS":
+                    # start <game_id>
+                    game = self.catalog.objectDict[args[0]]
+                    stats = game.stats()
+                    response = pprint.pformat(stats)
+
+                elif cmd == "STANDINGS":
+                    # standings <cup_id>
+                    cup = self.catalog.objectDict[args[0]]
+                    standings = cup.standings()
+                    response = pprint.pformat(standings)
 
                 elif cmd == "SCORE":
                     # score <game_id> <points> <team_id> <playername>

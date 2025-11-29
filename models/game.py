@@ -180,5 +180,5 @@ class Game():
     
     
     def __setstate__(self, state):
-        self.observers = []
+        self.observers = set()
         self.__dict__.update(state)

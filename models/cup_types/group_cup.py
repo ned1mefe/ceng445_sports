@@ -35,16 +35,17 @@ class GroupCup(Cup):
 
         self._groups = {name: LeagueCup(group_teams[i], self._interval, self._rematch_enabled) for i, name in enumerate(group_names)}
 
-        for group_name, group_cup in self._groups.items():
-            group_cup._groupName = group_name
-            group_cup.watch(self)
-            group_cup.initialize_games()
-            self._games.update(group_cup._games)
-            self._notify({"type": "new_group", "cup": self, "group": group_cup})
+        for group_name, league_cup in self._groups.items():
+            league_cup._groupName = group_name
+            league_cup.watch(self)
+            league_cup.initialize_games()
+            #self._games.update(league_cup._games)
+            self._notify({"type": "new_group", "cup": self, "group": league_cup})
 
     def update(self, event):
 
         if event["type"] == "new_game":
+            self._games[event["game"].id()] = event["game"]
             self._notify(event)
 
         if event["type"] == "cup_ended":
@@ -88,6 +89,9 @@ class GroupCup(Cup):
         self._playOffs = EliminationCup(qualified_teams, self._interval, self._rematch_enabled)
         self._playOffs.isPlayoff = True
         self._playOffs.watch(self)
+        for obs in self.observers:
+            self._playOffs.watch(obs)
+            self._playOffs.observers.discard(obs) # prevent double notifications
 
         self._notify({"type": "new_group", "cup": self, "group": self._playOffs})
 
@@ -128,4 +132,4 @@ class GroupCup(Cup):
             group.watch(self)
             
         if self._playOffs:
-            self._playOffs.watch()
+            self._playOffs.watch(self)

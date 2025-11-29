@@ -62,6 +62,8 @@ class Cup():
 
     def unwatch(self, obj):
         self.observers.discard(obj) #does not raise error if obj not found
+        for game in self._games.values():
+                game.unwatch(obj)
 
     def _notify(self, event):
         for obs in self.observers:
@@ -78,6 +80,9 @@ class Cup():
 
         game.watch(self)  # Cup observes the game for events
 
+        for obs in self.observers:
+            game.watch(obs)  # Cup's observers also observe the game
+
         self._notify({"type": "new_game", "game": game})  # Notify cup's observers
         return game
 
@@ -90,13 +95,13 @@ class Cup():
     
     
     def __setstate__(self, state):
-        self.observers = []
+        self.observers = set()
         self.__dict__.update(state)
 
         self._restore_observers()
 
     def _restore_observers(self):
-        for game in self._games:
+        for game in self._games.values():
             game.watch(self)
     
     
