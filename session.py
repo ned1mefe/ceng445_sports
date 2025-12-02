@@ -16,6 +16,8 @@ class Session(threading.Thread):
         self.catalog = catalog
         self.catalog_lock = catalog_lock
         self.DATA_FILE = datafile
+
+        self.response_enabled = True
         
         self.msg_queue = queue.Queue()
 
@@ -161,6 +163,8 @@ class Session(threading.Thread):
                     response = pprint.pformat(standings)
 
                 elif cmd == "SCORE":
+
+                    print(f"[{self.username}] SCORE args: {args}")
                     # score <game_id> <points> <team_id> <playername>
                     game = self.catalog.objectDict[args[0]]
                     pts = int(args[1])
@@ -174,10 +178,14 @@ class Session(threading.Thread):
                     self.save_state()
                     response = "State saved."
 
+                elif cmd == "RESPONSE":
+                    self.response_enabled = not self.response_enabled
+
                 else:
                     response = "UNKNOWN COMMAND"
-
-                self.send_message(response)
+                
+                if self.response_enabled :
+                    self.send_message(response)
 
             except Exception as e:
                 self.send_message(f"ERROR: {str(e)}")

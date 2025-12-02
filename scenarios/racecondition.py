@@ -44,11 +44,13 @@ def spam_client(name, game_id, team_id, count):
 
     sock.recv(4096)  # dump welcome message
 
+    sock.sendall("RESPONSE\n".encode())
+
     sock.sendall(f"USER {name}\n".encode())
 
     for _ in range(count):
         sock.sendall(f"SCORE {game_id} 1 {team_id}\n".encode())
-        #time.sleep(0.003)
+        #time.sleep(0.001)
 
     sock.close()
     print(f"{name} finished.")
@@ -89,4 +91,6 @@ if __name__ == "__main__":
     t2.join()
 
     print("\nAll clients finished. Fetching STATS...")
+
+    time.sleep(1)
     print_final_stats(game_id)
