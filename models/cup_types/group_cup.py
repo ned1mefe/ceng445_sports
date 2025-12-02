@@ -91,7 +91,7 @@ class GroupCup(Cup):
         self._playOffs.watch(self)
         for obs in self.observers:
             self._playOffs.watch(obs)
-            self._playOffs.observers.discard(obs) # prevent double notifications
+            #self._playOffs.observers.discard(obs) # prevent double notifications
 
         self._notify({"type": "new_group", "cup": self, "group": self._playOffs})
 
