@@ -69,6 +69,8 @@ class Session(threading.Thread):
             msg = f"New game is announced: {event['game'].description()}"
         elif event['type'] == 'new_group':
             msg = "Playoff stage is started"
+        elif event['type'] == 'cup_ended':
+            msg = f"Cup Ended! The winner is {event['winner'].description()}"
         else:
             msg = str(event)
             
