@@ -120,6 +120,11 @@ class Session(threading.Thread):
                     cid = self.catalog.create(type="cup", cup_type=cup_type, interval=interval, teams=team_ids)
                     response = f"{cup_type} Created. ID: {cid}"
 
+                elif cmd == "DELETE":                
+                    obj_id = args[0]
+                    self.catalog.delete(obj_id)
+                    response = "Deleted " + obj_id
+
                 elif cmd == "LIST":
                     items = self.catalog.list() # List of (id, desc)
                     response = "\n".join([f"{i[0]}: {i[1]}" for i in items])

@@ -129,8 +129,42 @@ class Catalog:
 
         obj = self.objectDict.pop(id)
         
-        #not sure if its necessary
-        # del(obj)
+        if isinstance(obj, Cup):
+            for gid in list(obj._games.keys()):
+                gameObj = obj._games.pop(gid)
+                if gid in self.objectDict:
+                    self.objectDict.pop(gid)
+
+        if isinstance(obj, GroupCup):
+            for letter, leagueCup in list(obj._groups.items()):
+                for gid in list(leagueCup._games.keys()):
+                    leagueCup._games.pop(gid)
+                    if gid in self.objectDict:
+                        self.objectDict.pop(gid)
+
+                if leagueCup.id() in self.objectDict:
+                    self.objectDict.pop(leagueCup.id())
+
+            obj._groups.clear()
+
+            # --- PLAYOFFS ---
+            # obj._playOffs: EliminationCup object
+            if obj._playOffs is not None:
+                playoffsCup = obj._playOffs
+
+                # playoffs içindeki tüm game'ler
+                for gid in list(playoffsCup._games.keys()):
+                    playoffsCup._games.pop(gid)
+                    if gid in self.objectDict:
+                        self.objectDict.pop(gid)
+
+                # playoffs cup'ı da sil
+                if playoffsCup.id() in self.objectDict:
+                    self.objectDict.pop(playoffsCup.id())
+
+                obj._playOffs = None
+
+
 
     def update(self, event):
         if event["type"] == "new_game":
