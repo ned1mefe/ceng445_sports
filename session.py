@@ -168,8 +168,6 @@ class Session(threading.Thread):
                     response = pprint.pformat(standings)
 
                 elif cmd == "SCORE":
-
-                    print(f"[{self.username}] SCORE args: {args}")
                     # score <game_id> <points> <team_id> <playername>
                     game = self.catalog.objectDict[args[0]]
                     pts = int(args[1])
