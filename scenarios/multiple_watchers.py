@@ -46,10 +46,6 @@ def setup_test_objects():
     return (g1_id, t1_id), (g2_id, t3_id)
 
 def watcher_client(name, game_ids, duration=6):
-    """
-    Connects once and watches specific game IDs.
-    Prints out notifications received.
-    """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((HOST, PORT))
     sock.recv(4096) # Welcome msg
@@ -61,7 +57,6 @@ def watcher_client(name, game_ids, duration=6):
     
     for gid in game_ids:
         sock.sendall(f"WATCH {gid}\n".encode())
-        # Read the "Watching..." confirmation
         sock.recv(1024)
 
     print(f"[{name}] Listening... (Should ONLY see updates for {game_ids})")
@@ -86,10 +81,7 @@ def watcher_client(name, game_ids, duration=6):
     print(f"[{name}] Finished watching.")
 
 def scorer_client(name, game_id, team_id, count, delay=0):
-    """
-    Connects and updates the score for a specific game/team.
-    """
-    time.sleep(delay) # Wait for watchers to be ready
+    time.sleep(delay) 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((HOST, PORT))
     sock.recv(4096)
@@ -101,8 +93,8 @@ def scorer_client(name, game_id, team_id, count, delay=0):
 
     for i in range(count):
         sock.sendall(f"SCORE {game_id} 1 {team_id}\n".encode())
-        sock.recv(1024) # Consume acknowledgment
-        time.sleep(0.5) # Slow delay to separate events clearly in output
+        sock.recv(1024) 
+        time.sleep(0.5)
 
     sock.close()
     print(f"[{name}] Finished updates.")

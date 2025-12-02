@@ -18,7 +18,6 @@ def setup_test_objects():
 
     print("[SETUP] Creating teams and games...")
 
-    # --- Game 1 Setup ---
     resp = send_cmd(sock, "CREATE_TEAM TeamA 2020 TUR")
     t1_id = re.findall(r"ID:\s*(\S+)", resp)[0]
     
@@ -28,7 +27,6 @@ def setup_test_objects():
     resp = send_cmd(sock, f'CREATE_GAME {t1_id} {t2_id} "2025-01-01 10:00"')
     g1_id = re.findall(r"ID:\s*(\S+)", resp)[0]
     
-    # --- Game 2 Setup ---
     resp = send_cmd(sock, "CREATE_TEAM TeamC 2020 GER")
     t3_id = re.findall(r"ID:\s*(\S+)", resp)[0]
     
@@ -38,7 +36,6 @@ def setup_test_objects():
     resp = send_cmd(sock, f'CREATE_GAME {t3_id} {t4_id} "2025-01-01 12:00"')
     g2_id = re.findall(r"ID:\s*(\S+)", resp)[0]
 
-    # Start both games so scoring is allowed
     send_cmd(sock, f"START {g1_id}")
     send_cmd(sock, f"START {g2_id}")
 
@@ -46,10 +43,6 @@ def setup_test_objects():
     return (g1_id, t1_id, t2_id), (g2_id, t3_id, t4_id)
 
 def watcher_client(name, game_ids, duration=4):
-    """
-    Connects once and watches multiple game IDs.
-    Prints out notifications received for 'duration' seconds.
-    """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((HOST, PORT))
     sock.recv(4096) # Welcome msg
@@ -61,7 +54,6 @@ def watcher_client(name, game_ids, duration=4):
     
     for gid in game_ids:
         sock.sendall(f"WATCH {gid}\n".encode())
-        # Read the "Watching..." confirmation for each
         confirmation = sock.recv(1024).decode().strip()
         print(f"[{name}] Server response: {confirmation}")
 
@@ -87,10 +79,7 @@ def watcher_client(name, game_ids, duration=4):
     print(f"[{name}] Finished watching.")
 
 def scorer_client(name, game_id, team_id, count, delay=0):
-    """
-    Connects and updates the score for a specific game/team.
-    """
-    time.sleep(delay) # Wait for watcher to be ready
+    time.sleep(delay) 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((HOST, PORT))
     sock.recv(4096)
@@ -100,8 +89,8 @@ def scorer_client(name, game_id, team_id, count, delay=0):
 
     for i in range(count):
         sock.sendall(f"SCORE {game_id} 1 {team_id}\n".encode())
-        sock.recv(1024) # Consume acknowledgment
-        time.sleep(0.2) # Small delay to make output readable
+        sock.recv(1024) 
+        time.sleep(0.2) 
 
     sock.close()
     print(f"[{name}] Finished updates.")

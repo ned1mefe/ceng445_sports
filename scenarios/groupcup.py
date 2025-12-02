@@ -11,7 +11,7 @@ def send_cmd(sock, cmd):
     sock.sendall((cmd + "\n").encode())
     time.sleep(0.05)
     try:
-        data = sock.recv(16384).decode()
+        data = sock.recv(65536).decode() 
         return data.strip()
     except socket.timeout:
         return ""
@@ -25,10 +25,10 @@ def create_team(sock, name):
         return match.group(1)
     return None
 
-def find_new_round_games(sock, team_names, known_game_ids):
-    resp = send_cmd(sock, "LIST") # we have to list new games because we do not know their IDs yet
+def find_new_games(sock, team_names, known_game_ids):
+    resp = send_cmd(sock, "LIST")
     new_games = []
-
+    
     for line in resp.split('\n'):
         if "Game:" in line:
             parts = line.split(': ', 1)
@@ -37,7 +37,6 @@ def find_new_round_games(sock, team_names, known_game_ids):
             gid = parts[0]
             desc = parts[1]
             
-            # Check if this game involves our teams and is new
             if gid not in known_game_ids:
                 if any(name in desc for name in team_names):
                     new_games.append((gid, desc))
@@ -47,86 +46,93 @@ def find_new_round_games(sock, team_names, known_game_ids):
 def run_scenario():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((HOST, PORT))
-    sock.recv(4096) 
+    sock.recv(4096)
 
-    print("--- [SCENARIO] Elimination Cup: Random Scoring until Winner ---")
+    print("--- [SCENARIO] Group Cup: Groups -> Playoffs ---")
 
     print("\n[1] Creating 8 Teams...")
     team_map = {} # Name -> ID
-    team_ids = []
     
     for i in range(1, 9):
-        name = f"ElimTeam{i}"
+        name = f"GrpTeam{i}"
         tid = create_team(sock, name)
         if tid:
             team_map[name] = tid
-            team_ids.append(tid)
             print(f"    Created {name}")
         else:
             print(f"    Error creating {name}")
             return
 
-    print("\n[2] Creating Elimination Cup...")
-    cmd = f"CREATE_CUP ELIMINATION 1 {' '.join(team_ids)}"
-    resp = send_cmd(sock, cmd)
-    cup_id_match = re.search(r"ID:\s*([a-f0-9\-]+)", resp)
     
+    print("\n[2] Creating Group Cup...")
+    cmd = f"CREATE_CUP GROUP 1 {' '.join(team_map.values())}"
+    resp = send_cmd(sock, cmd)
+    
+    cup_id_match = re.search(r"ID:\s*([a-f0-9\-]+)", resp)
     if not cup_id_match:
-        print("    Failed to create cup.")
+        print("    Failed to create cup. Response:", resp)
         return
     cup_id = cup_id_match.group(1)
     print(f"    Cup ID: {cup_id}")
 
-    send_cmd(sock, f"WATCH {cup_id}")
-
     known_games = set()
-    round_num = 1
+
     
     while True:
-        standings = send_cmd(sock, f"STANDINGS {cup_id}")
-
-        print(f"\n--- Round {round_num} ---")
+        print(f"\n---(Scanning for games) ---")
+        time.sleep(1.5)
         
-        games = find_new_round_games(sock, team_map.keys(), known_games)
+        games = find_new_games(sock, team_map.keys(), known_games)
         
         if not games:
-            print("    No new games found. Checking results...")
-            print(f"\n[FINAL STANDINGS]\n{standings}")
-            break
-            
-        print(f"    Found {len(games)} matches.")
+            standings = send_cmd(sock, f"STANDINGS {cup_id}")
+           
+            if "PlayOffs" in standings:
+                print("    No new games found. Tournament appears complete.")
+                break
+            else:
+                time.sleep(2)
+                games = find_new_games(sock, team_map.keys(), known_games)
+                if not games:
+                    print("    No new games found.")
+                    break
+
+        print(f"    Found {len(games)} new matches.")
 
         for gid, desc in games:
             known_games.add(gid)
             
             match_desc = re.search(r"Game:\s+(.*?)\s+vs\s+(.*?)\s+at", desc)
             if not match_desc:
-                print(f"    Could not parse: {desc}")
+                print(f"    Skipping unparsable game: {desc}")
                 continue
             
             home_name = match_desc.group(1)
             away_name = match_desc.group(2)
             
-            print(f"    > Playing: {home_name} vs {away_name} (ID: {gid})")
+    
+            hid = team_map.get(home_name)
+            aid = team_map.get(away_name)
+            
+            print(f"    > Match: {home_name} vs {away_name}")
             
             send_cmd(sock, f"START {gid}")
             
             score_h = random.randint(0, 5)
             score_a = random.randint(0, 5)
             
-            hid = team_map.get(home_name)
-            aid = team_map.get(away_name)
-            
             if hid: send_cmd(sock, f"SCORE {gid} {score_h} {hid}")
             if aid: send_cmd(sock, f"SCORE {gid} {score_a} {aid}")
             
-            print(f"      Result: {home_name} {score_h} - {score_a} {away_name}")
+            print(f"      Final: {home_name} {score_h} - {score_a} {away_name}")
             
             send_cmd(sock, f"END {gid}")
         
-        time.sleep(1)
-        round_num += 1
 
+    # 4. Final Results
+    print("\n[4] Tournament Finished. Final Standings:")
+    print(send_cmd(sock, f"STANDINGS {cup_id}"))
+    
     sock.close()
 
 if __name__ == "__main__":
