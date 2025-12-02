@@ -62,7 +62,7 @@ class Session(threading.Thread):
 
     def update(self, event):
         if event['type'] == 'score':
-            msg = f"GOAL! {event['team']} scored {event['points']} points!"
+            msg = f"GOAL! {event['team']} scored {event['points']} points! @ {event['game'].description()}"
         elif event['type'] == 'game_ended':
             msg = f"Game Over: {event['game'].description()}"
         else:

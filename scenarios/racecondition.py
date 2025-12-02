@@ -43,9 +43,7 @@ def spam_client(name, game_id, team_id, count):
     sock.connect((HOST, PORT))
 
     sock.recv(4096)  # dump welcome message
-
-    sock.sendall("RESPONSE\n".encode())
-
+    sock.sendall(f"RESPONSE\n".encode())
     sock.sendall(f"USER {name}\n".encode())
 
     for _ in range(count):
