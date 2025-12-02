@@ -65,6 +65,10 @@ class Session(threading.Thread):
             msg = f"GOAL! {event['team']} scored {event['points']} points! @ {event['game'].description()}"
         elif event['type'] == 'game_ended':
             msg = f"Game Over: {event['game'].description()}"
+        elif event['type'] == 'new_game':
+            msg = f"New game is announced: {event['game'].description()}"
+        elif event['type'] == 'new_group':
+            msg = "Playoff stage is started"
         else:
             msg = str(event)
             
