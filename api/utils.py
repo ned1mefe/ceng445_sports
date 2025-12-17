@@ -1,9 +1,9 @@
 from datetime import timedelta
 from flask import jsonify
 
-def parse_interval(seconds):
-    """Converts seconds integer to timedelta."""
-    return timedelta(seconds=int(seconds))
+def parse_interval(days):
+    """Converts days integer to timedelta."""
+    return timedelta(days=int(days))
 
 def serialize_team(team):
     return {
@@ -27,5 +27,5 @@ def serialize_cup(cup):
     return {
         "id": cup.id(),
         "description": str(cup),
-        "standings": cup.standings()
+        "games": [serialize_game(g) for g in cup._games.values()]
     }
