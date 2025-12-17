@@ -1,5 +1,5 @@
 from random import shuffle, choice
-from models.cup import Cup
+from class_library.models.cup import Cup
 
 class EliminationCup(Cup):
 

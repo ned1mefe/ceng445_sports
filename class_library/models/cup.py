@@ -1,6 +1,6 @@
 from random import shuffle
 import uuid
-from models.game import Game
+from class_library.models.game import Game
 from datetime import datetime
 
 class Cup():

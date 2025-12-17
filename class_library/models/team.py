@@ -1,5 +1,5 @@
 import uuid
-from models.player import Player
+from class_library.models.player import Player
 
 class Team():
     def __init__(self, name = None, year = None, country = None):

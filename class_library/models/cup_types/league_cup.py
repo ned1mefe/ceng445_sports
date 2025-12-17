@@ -1,4 +1,4 @@
-from models.cup import Cup
+from class_library.models.cup import Cup
 from random import shuffle
 
 class LeagueCup(Cup):

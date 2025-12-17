@@ -1,6 +1,6 @@
-from models.cup import Cup
-from models.cup_types.elimination_cup import EliminationCup
-from models.cup_types.league_cup import LeagueCup
+from class_library.models.cup import Cup
+from class_library.models.cup_types.elimination_cup import EliminationCup
+from class_library.models.cup_types.league_cup import LeagueCup
 
 class GroupCup(Cup):
 
