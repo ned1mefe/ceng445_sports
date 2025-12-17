@@ -1,0 +1,79 @@
+import uuid
+from models.player import Player
+
+class Team():
+    def __init__(self, name = None, year = None, country = None):
+        self.info = {
+            "name": name,
+            "year": year,
+            "country": country
+        }
+        
+        self.observers = set()
+        self.games = [] 
+
+        self.numbers = {} # given jersey numbers to players
+        self.players = {} # player name to player object
+        self._id = str(uuid.uuid4())
+    
+    def __setitem__(self, key, value):
+        self.info[key] = value
+    def __getattr__(self, key):
+        return self.info[key]
+    def __delattr__(self, key):
+        self.info[key] = None
+
+    def addplayer(self, pname, pno):
+        if pname in self.players:
+            raise ValueError("Player already in team")
+        if pno in self.numbers:
+            raise ValueError("Jersey number taken")
+        
+        player = Player(pname)
+        player.team = self
+        player.number = pno
+
+        self.numbers[pno] = player
+        self.players[pname] = player
+
+    def delplayer(self, name):
+        if name in self.players:
+            player = self.players[name]
+
+            del self.numbers[player.number]
+            del self.players[name]
+            
+            player.team = None
+            player.number = None
+        
+        else:
+            raise ValueError("Player not in team")
+        
+    def id(self):
+        return self._id
+
+    def __str__(self):
+        return f"Team: {self.info['name']}"
+    
+    def description(self):
+        return str(self)
+    
+    def watch(self, obj):
+        if obj:
+            self.observers.add(obj)
+            for game in self.games:
+                game.watch(obj)
+    
+    def unwatch(self, obj):
+        if obj:
+            self.observers.discard(obj)
+            for game in self.games:
+                game.unwatch(obj)
+    
+    def __getstate__(self):
+        return {k: v for (k, v) in self.__dict__.items() if k != "observers"}
+    
+    def __setstate__(self, state):
+        self.observers = set()
+        self.__dict__.update(state)
+    
