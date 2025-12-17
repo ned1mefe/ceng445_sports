@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, abort
-from tomlkit import datetime
+from datetime import datetime
 from api.shared import catalog
 from api.utils import serialize_cup, parse_interval, serialize_game
 from class_library.models.cup import Cup
