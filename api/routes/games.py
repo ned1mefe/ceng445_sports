@@ -20,16 +20,13 @@ def create_game():
         if not home_id or not away_id:
             return jsonify({"error": "Missing 'home' or 'away' team IDs"}), 400
 
-        # Parse datetime if provided, otherwise use current time
         dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M") if dt_str else datetime.now()
 
-        # Use the catalog to create the game
         gid = catalog.create(type="game", home=home_id, away=away_id, datetime=dt)
         
         return jsonify({"message": "Game created", "id": gid}), 201
 
     except ValueError as e:
-        # Catches errors like invalid team IDs or bad date format
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": "Internal server error: " + str(e)}), 500
