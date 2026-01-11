@@ -63,35 +63,47 @@ class Session:
         self.send_json({"status": "fail", "reason": str(reason)})
 
     def update(self, event):
-        # FIX: Use Tagging instead of ID tracking.
-        # Python reuses memory IDs, so checking id(event) caused valid new events 
-        # to be dropped if they reused the memory of a recent event.
-        # Instead, we mark the event dict itself as handled by THIS session.
+        # Tagging to prevent duplicate/corrupted events (Diamond problem)
         tag = f"__processed_{id(self)}"
         if event.get(tag):
-            return # Already processed this specific event object (Diamond problem)
-        
-        # Mark as processed (safe because event is transient)
+            return 
         event[tag] = True
 
-        # Build payload, excluding our internal tag
         payload = {"type": event.get("type", "unknown")}
         for k, v in event.items():
             if not k.startswith("__processed_"):
                 payload[k] = v
         
+        # --- FIX: Associate Game events with Watched Cups ---
         if 'game' in event:
-            payload['game_id'] = event['game'].id()
-            payload['game_desc'] = event['game'].description()
-        
-        if event['type'] == 'player_added':
-            payload['team_id'] = event['team_id']
-            payload['players'] = event['players']
+            game_obj = event['game']
+            payload['game_id'] = game_obj.id()
+            payload['game_desc'] = game_obj.description()
+            payload['home_id'] = game_obj.home().id()
+            payload['away_id'] = game_obj.away().id()
+
+            # Check if this game belongs to any Cup the user is watching
+            watched_items = self.catalog.attachDict.get(self, [])
+            related = []
+            for oid in watched_items:
+                if oid in self.catalog.objectDict:
+                    obj = self.catalog.objectDict[oid]
+                    # Check if object is a Cup (has _games attribute) and contains this game
+                    if hasattr(obj, '_games') and game_obj.id() in obj._games:
+                        related.append(oid)
+            
+            if related:
+                payload['related_ids'] = related
+        # ----------------------------------------------------
 
         if event['type'] == 'score':
             payload.update({"team": event['team'].name, "points": event['points']})
+        
+        # --- FIX: Handle Cup Ended Notification ---
         elif event['type'] == 'cup_ended':
-            payload["winner"] = event['winner'].description()
+            payload["cup_id"] = event["cup"].id()
+            payload["winner"] = str(event['winner'])
+        # ------------------------------------------
             
         payload["details"] = str(event)
         self.msg_queue.put(payload)
@@ -182,23 +194,12 @@ class Session:
 
                     elif cmd == "ADD_PLAYER":
                         if hasattr(obj, 'addplayer'):
-                            name = data.get('name')
-                            number = int(data.get('number', 0))
-                            
-                            obj.addplayer(name, number)
-                            
-                            current_players = [f"{n} ({p.number})" for n, p in obj.players.items()]
-                            
+                            obj.addplayer(data.get('name'), int(data.get('number', 0)))
+                            current_players = list(obj.players.keys()) if hasattr(obj, 'players') else []
                             self.send_success(
-                                {"message": f"Player {name} added", "players": current_players}, 
+                                {"message": f"Player {data.get('name')} added", "players": current_players}, 
                                 meta={"action": "player_added", "obj_id": obj_id}
                             )
-
-                            self.catalog.notify_observers({
-                                "type": "player_added",
-                                "team_id": obj_id,
-                                "players": current_players
-                            })
                         else: raise ValueError("This object cannot add players")
                     
                     elif cmd == "START": obj.start(); self.send_success("Started")

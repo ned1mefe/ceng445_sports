@@ -53,23 +53,15 @@ function handleResponse(res) {
             return;
         }
 
-        if (res.data.type === 'player_added') {
-            const teamId = res.data.team_id;
-            const players = res.data.players;
-
-            const cachedItem = catalogCache.find(x => x.id === teamId);
-            if(cachedItem) {
-                if(!cachedItem.extra) cachedItem.extra = {};
-                cachedItem.extra.players = players;
+        // --- FIX: Handle Cup Ended ---
+        if (res.data.type === 'cup_ended') {
+            if (watchedIds.has(res.data.cup_id)) {
+                showToast(`🏆 Cup ${res.data.cup_id} Ended! Winner: ${res.data.winner}`);
+                logNotification(res.data);
             }
-
-            if (currentViewId === teamId) {
-                updateTeamViewUI(teamId, players);
-            }
-            
-            showToast(`Player added to team.`);
             return;
         }
+        // -----------------------------
 
         const type = res.data.type;
         if (['game_started', 'game_paused', 'game_resumed', 'game_ended'].includes(type)) {
@@ -105,7 +97,11 @@ function handleResponse(res) {
                  sendJson({ method: "STATS", obj: gid });
              }
              
-             if (watchedIds.has(gid)) logNotification(res.data);
+             // FIX: Check if we are watching Game OR Team OR Parent Cup
+             const isRelated = res.data.related_ids && res.data.related_ids.some(id => watchedIds.has(id));
+             if (watchedIds.has(gid) || watchedIds.has(res.data.home_id) || watchedIds.has(res.data.away_id) || isRelated) {
+                 logNotification(res.data);
+             }
              return; 
         }
         
@@ -127,7 +123,9 @@ function handleResponse(res) {
             }
         }
         
-        if (watchedIds.has(res.data.game_id) || watchedIds.has(res.data.id)) {
+        // FIX: Check related IDs (Cups) for score updates too
+        const isRelated = res.data.related_ids && res.data.related_ids.some(id => watchedIds.has(id));
+        if (watchedIds.has(res.data.game_id) || watchedIds.has(res.data.id) || watchedIds.has(res.data.home_id) || watchedIds.has(res.data.away_id) || isRelated) {
              logNotification(res.data);
         }
         
@@ -255,6 +253,7 @@ function logNotification(data) {
     const entry = document.createElement('div');
     entry.className = 'log-entry';
     let content = (data.type === 'score') ? `<strong>GOAL!</strong> ${data.team} (+${data.points})` : JSON.stringify(data);
+    if(data.type === 'cup_ended') content = `<strong>🏆 WINNER:</strong> ${data.winner}`;
     entry.innerHTML = `${content} <small>${new Date().toLocaleTimeString()}</small>`;
     log.insertBefore(entry, log.firstChild);
 }
@@ -270,23 +269,8 @@ function sendScore() {
 }
 
 function promptAddPlayer(teamId) {
-    // FIX: Single Prompt for Name and Number
-    const input = prompt("Enter Name and Jersey Number (e.g. 'Messi, 10'):");
-    if (!input) return;
-    
-    let name, number;
-    if (input.includes(',')) {
-        const parts = input.split(',');
-        name = parts[0].trim();
-        number = parts[1].trim();
-    } else {
-        alert("Please separate name and number with a comma.");
-        return;
-    }
-    
-    if (name && number) {
-        sendJson({ method: "ADD_PLAYER", obj: teamId, name: name, number: number });
-    }
+    const name = prompt("Name:");
+    if(name) sendJson({ method: "ADD_PLAYER", obj: teamId, name: name });
 }
 
 function updateCatalogUI(items) {
