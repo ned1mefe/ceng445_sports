@@ -15,7 +15,6 @@ class Session:
         self.DATA_FILE = datafile
         self.msg_queue = queue.Queue()
         
-        # Track watching to calculate related_ids
         self.watching = set() 
         
         with self.catalog_lock:
@@ -193,7 +192,6 @@ class Session:
                         if hasattr(obj, 'addplayer'):
                             obj.addplayer(data.get('name'), int(data.get('number', 0)))
                             
-                            # FIX: Format the player list with numbers immediately
                             current_players = [f"{name} ({p.number})" for name, p in obj.players.items()]
                             
                             self.send_success(
@@ -212,11 +210,9 @@ class Session:
                         else: self.send_success({"info": str(obj)})
                         
                     elif cmd == "STANDINGS": 
-                        # FIX: Return both standings AND games so the frontend can display the full schedule
                         response = {"standings": obj.standings()}
                         if hasattr(obj, '_games'):
                             games_list = []
-                            # Sort games by date/ID to keep order stable
                             for gid, g in obj._games.items():
                                 try:
                                     stats = g.stats()
@@ -230,7 +226,7 @@ class Session:
                                         "datetime": g._datetime.strftime("%Y-%m-%d %H:%M")
                                     })
                                 except:
-                                    pass # Skip malformed games
+                                    pass 
                             response["games"] = sorted(games_list, key=lambda x: x['datetime'])
 
                         self.send_success(response, meta={"action": "standings", "id": obj_id})

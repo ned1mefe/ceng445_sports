@@ -45,7 +45,6 @@ def agent(wsock):
     addr = wsock.remote_address
     print(f"Connection accepted from {addr}")
 
-    # Create a session handler for this connection
     session = Session(
         wsock=wsock,
         addr=addr,
