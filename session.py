@@ -86,8 +86,11 @@ class Session:
             for oid in self.watching:
                 if oid in self.catalog.objectDict:
                     obj = self.catalog.objectDict[oid]
-                    if hasattr(obj, '_games') and game_obj.id() in obj._games:
-                        related.append(oid)
+                    try:
+                        if isinstance(obj._games, dict) and game_obj.id() in obj._games:
+                            related.append(oid)
+                    except:
+                        pass
             
             if related:
                 payload['related_ids'] = related
