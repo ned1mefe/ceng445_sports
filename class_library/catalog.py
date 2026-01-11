@@ -8,8 +8,9 @@ from class_library.models.game import Game
 
 class Catalog:
     def __init__(self):
-        self.attachDict = {} # user (or userID) -> [objectId]
-        self.objectDict = {} # objectId -> object
+        self.attachDict = {} 
+        self.objectDict = {} 
+        self.observers = []  
 
     def _resolve_team(self, val):
         if val in self.objectDict:
@@ -18,7 +19,6 @@ class Catalog:
                 return resolved
             else:
                 raise ValueError(f"Object with id {val} is not a Team")
-
         raise ValueError("Cannot resolve team: must be an active team id")
 
     def _create_team(self, **kw):
@@ -52,16 +52,13 @@ class Catalog:
         
         if type in ["ELIMINATION", "ELIMINATION2"]:
             cup = EliminationCup(teams, interval, rematch_enabled)
-
         elif type in ["GROUP", "GROUP2"]:
             cup = GroupCup(teams, interval, rematch_enabled)
-            
         elif type in ["LEAGUE", "LEAGUE2"]:
             cup = LeagueCup(teams, interval, rematch_enabled)
 
-        cup.watch(self)  # Catalog observes the cup for new games
-        
-        cup.initialize_games()  # Initialize the cup (e.g., schedule initial games)
+        cup.watch(self) 
+        cup.initialize_games()
         return cup
 
     def create(self, **kw):
@@ -80,6 +77,15 @@ class Catalog:
 
         obj = creators[kind.lower()](**kw)
         self.objectDict[obj.id()] = obj
+
+        self.notify_observers({
+            "type": "catalog_update",
+            "action": "create",
+            "id": obj.id(),
+            "item_type": kind.lower(),
+            "description": obj.description()
+        })
+        
         return obj.id()
 
     def list(self):
@@ -88,12 +94,10 @@ class Catalog:
     def listattached(self, user):
         if (user not in self.attachDict):
             raise ValueError()
-
         return [(objId, self.objectDict[objId].description()) for objId in self.attachDict[user]] 
 
     def attach(self, id, user):
         self.objectDict[id].watch(user)
-
         if user in self.attachDict:
             if id not in self.attachDict[user]:
                 self.attachDict[user].append(id)
@@ -102,30 +106,38 @@ class Catalog:
 
     def detach(self, id, user):
         self.objectDict[id].unwatch(user)
-
         if user in self.attachDict:
             if id in self.attachDict[user]:
                 self.attachDict[user].remove(id)
 
-        
     def detachAll(self, user):
         if user in self.attachDict:
             for objId in self.attachDict[user]:
                 self.detach(objId, user)
 
+    def attach_observer(self, observer):
+        if observer not in self.observers:
+            self.observers.append(observer)
+
+    def detach_observer(self, observer):
+        if observer in self.observers:
+            self.observers.remove(observer)
+
+    def notify_observers(self, event):
+        for obs in self.observers:
+            try:
+                obs.update(event)
+            except:
+                pass 
+
     def delete(self, id):
         if id not in self.objectDict:
             raise ValueError()
         
-        isAttached = False
-
-        for objIds in self.attachDict.values():
-            if id in objIds:
-                isAttached = True
-                break
-        
-        if isAttached:
-            raise ValueError()
+        for user, watched_ids in self.attachDict.items():
+            if id in watched_ids:
+                watched_ids.remove(id)
+                self.objectDict[id].unwatch(user)
 
         obj = self.objectDict.pop(id)
         
@@ -141,51 +153,53 @@ class Catalog:
                     leagueCup._games.pop(gid)
                     if gid in self.objectDict:
                         self.objectDict.pop(gid)
-
                 if leagueCup.id() in self.objectDict:
                     self.objectDict.pop(leagueCup.id())
-
             obj._groups.clear()
 
-            # --- PLAYOFFS ---
-            # obj._playOffs: EliminationCup object
             if obj._playOffs is not None:
                 playoffsCup = obj._playOffs
-
-                # playoffs içindeki tüm game'ler
                 for gid in list(playoffsCup._games.keys()):
                     playoffsCup._games.pop(gid)
                     if gid in self.objectDict:
                         self.objectDict.pop(gid)
-
-                # playoffs cup'ı da sil
                 if playoffsCup.id() in self.objectDict:
                     self.objectDict.pop(playoffsCup.id())
-
                 obj._playOffs = None
 
-
+        self.notify_observers({
+            "type": "catalog_update",
+            "action": "delete",
+            "id": id
+        })
 
     def update(self, event):
+        # Handle internal logic
         if event["type"] == "new_game":
             game = event["game"]
             self.objectDict[game.id()] = game
+            self.notify_observers({
+                "type": "catalog_update", "action": "create", "id": game.id(), 
+                "item_type": "game", "description": game.description()
+            })
         
         if event["type"] == "new_group":
             group = event["group"]
             self.objectDict[group.id()] = group
 
+        # --- FIX: Forward game events to all Catalog Observers (Sessions) ---
+        # This allows the catalog list to update scores instantly for everyone
+        if event.get("type") in ["score", "game_started", "game_ended", "game_paused", "game_resumed"]:
+            self.notify_observers(event)
+        # ------------------------------------------------------------------
 
     def __getstate__(self):
-        return {
-            "objectDict": self.objectDict
-        }
-
+        return { "objectDict": self.objectDict }
 
     def __setstate__(self, state):
         self.objectDict = state["objectDict"]
         self.attachDict = {}
-
+        self.observers = []
         self._restore_cup_observers()
     
     def _restore_cup_observers(self):

@@ -47,6 +47,10 @@ class Game():
     
     def away(self):
         return self._away_team
+
+    @property
+    def is_paused(self):
+        return (not self.is_running) and (not self.is_ended) and (self._elapsed_time > timedelta(0))
     
     def _get_current_game_time(self):
         """Calculates the current game time based on elapsed and running time."""

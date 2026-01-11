@@ -1,0 +1,27 @@
+body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
+.hidden { display: none; }
+
+/* Panels and Cards */
+.panel { background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.card { background: #eee; padding: 10px; margin: 5px; border-radius: 5px; display: inline-block; vertical-align: top; width: 30%; }
+.content-grid { display: flex; gap: 20px; }
+#catalog-panel { flex: 1; }
+#detail-panel { flex: 1; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+th { background-color: #4CAF50; color: white; }
+
+/* Status */
+.connected { color: green; font-weight: bold; }
+.disconnected { color: red; font-weight: bold; }
+
+/* Notifications */
+#notification-area { position: fixed; bottom: 20px; right: 20px; width: 300px; }
+.toast { background: #333; color: white; padding: 10px; margin-top: 5px; border-radius: 4px; opacity: 0.9; }
+
+/* Controls */
+input, select, button { margin: 5px 0; padding: 5px; width: 95%; }
+button { cursor: pointer; background-color: #007bff; color: white; border: none; }
+button:hover { background-color: #0056b3; }

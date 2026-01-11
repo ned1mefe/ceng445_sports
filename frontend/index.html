@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports Management Phase 4</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Extra styles for the new notification panel */
+        .main-layout { display: flex; gap: 20px; height: 90vh; }
+        .left-column { flex: 3; display: flex; flex-direction: column; overflow-y: auto; }
+        .right-column { flex: 1; background: #fff; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; }
+        
+        #notification-log { 
+            flex: 1; 
+            overflow-y: auto; 
+            background: #f9f9f9; 
+            border: 1px solid #eee; 
+            padding: 5px; 
+            font-size: 0.9em;
+        }
+        .log-entry { 
+            padding: 8px; 
+            border-bottom: 1px solid #ddd; 
+            margin-bottom: 5px; 
+            background: white;
+            border-left: 4px solid #007bff;
+        }
+        .log-entry.alert { border-left-color: #dc3545; }
+        .log-entry small { color: #666; display: block; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <div id="connection-panel">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Enter Username" value="Admin">
+        <button onclick="connect()">Connect to Server</button>
+        <span id="status-indicator" class="disconnected">Disconnected</span>
+    </div>
+
+    <div id="main-app" class="hidden">
+        <div class="main-layout">
+            
+            <div class="left-column">
+                <div class="panel">
+                    <h3>Create Objects</h3>
+                    <div class="controls">
+                        <div class="card">
+                            <h4>New Team</h4>
+                            <input type="text" id="team-name" placeholder="Name">
+                            <input type="text" id="team-country" placeholder="Country">
+                            <input type="number" id="team-year" placeholder="Year">
+                            <button onclick="createTeam()">Create Team</button>
+                        </div>
+
+                        <div class="card">
+                            <h4>New Game</h4>
+                            <select id="game-home-select"><option>Select Home</option></select>
+                            <select id="game-away-select"><option>Select Away</option></select>
+                            <input type="datetime-local" id="game-date">
+                            <button onclick="createGame()">Create Game</button>
+                        </div>
+
+                        <div class="card">
+                            <h4>New Cup</h4>
+                            <select id="cup-type">
+                                <option value="LEAGUE">League</option>
+                                <option value="ELIMINATION">Elimination</option>
+                                <option value="GROUP">Group</option>
+                            </select>
+                            <input type="number" id="cup-interval" placeholder="Interval (days)" value="1">
+                            <select id="cup-teams-select" multiple size="4"></select>
+                            <small>Ctrl+Click multiple</small>
+                            <button onclick="createCup()">Create Cup</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" id="detail-panel">
+                    <h3>Object Details / Controls</h3>
+                    <div id="active-object-container">
+                        <p style="color:#888; font-style:italic;">Click "Details" on an object to control it here.</p>
+                    </div>
+                    
+                    <div id="game-controls-template" class="hidden">
+                        <div class="game-hud">
+                            <div class="score-board">
+                                <h2 id="hud-desc">Game Description</h2>
+                                <div class="scores">
+                                    <span id="hud-home-score">0</span> - <span id="hud-away-score">0</span>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button onclick="gameControl(currentViewId, 'START')">Start</button>
+                                <button onclick="gameControl(currentViewId, 'PAUSE')">Pause</button>
+                                <button onclick="gameControl(currentViewId, 'RESUME')">Resume</button>
+                                <button onclick="gameControl(currentViewId, 'END')">End</button>
+                            </div>
+                            <div class="scoring-actions">
+                                <select id="score-team-select"></select>
+                                <input type="number" id="score-points" value="1" style="width: 50px;">
+                                <input type="text" id="score-player" placeholder="Player Name">
+                                <button onclick="sendScore()">Add Score</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" id="catalog-panel">
+                    <div class="header-row">
+                        <h3>Catalog</h3>
+                        <button onclick="refreshCatalog()">Refresh List</button>
+                    </div>
+                    <table id="catalog-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <h3>Notifications</h3>
+                <p><small>Updates for watched objects appear here.</small></p>
+                <div id="notification-log"></div>
+                <button onclick="document.getElementById('notification-log').innerHTML=''">Clear Log</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="notification-area"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
