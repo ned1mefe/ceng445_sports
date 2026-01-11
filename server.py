@@ -12,6 +12,24 @@ catalog = None
 catalog_lock = threading.RLock()
 DATA_FILE = "server_state.pkl"
 
+# Global registry of all active sessions for broadcasting notifications
+active_sessions = set()
+sessions_lock = threading.RLock()
+
+
+def broadcast_to_all_sessions(event):
+    """Broadcast an event to all active sessions."""
+    with sessions_lock:
+        # Create a copy to avoid issues if sessions are removed during iteration
+        sessions_copy = list(active_sessions)
+    
+    for session in sessions_copy:
+        try:
+            session.update(event)
+        except Exception:
+            # Session might be closed, ignore
+            pass
+
 
 def load_state():
     global catalog
@@ -27,6 +45,9 @@ def load_state():
     else:
         print("No saved state found. Starting fresh.")
         catalog = Catalog()
+    
+    # Register broadcast function with catalog
+    catalog.set_broadcast_function(broadcast_to_all_sessions)
 
 
 def save_state_on_exit():
@@ -53,8 +74,17 @@ def agent(wsock):
         catalog_lock=catalog_lock,
         datafile=DATA_FILE
     )
-
-    session.run()
+    
+    # Register session for global notifications
+    with sessions_lock:
+        active_sessions.add(session)
+    
+    try:
+        session.run()
+    finally:
+        # Unregister session when it disconnects
+        with sessions_lock:
+            active_sessions.discard(session)
 
 
 if __name__ == "__main__":

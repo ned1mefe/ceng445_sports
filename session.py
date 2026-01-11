@@ -69,18 +69,33 @@ class Session:
         # Prepare structured real-time events
         payload = {"type": event.get("type", "unknown")}
         
+        # Handle game-related events
         if 'game' in event:
             payload['game_id'] = event['game'].id()
             payload['game_desc'] = event['game'].description()
-            
-        if event['type'] == 'score':
+        
+        # Handle creation events
+        if event['type'].endswith('_created'):
+            payload['id'] = event.get('id')
+            payload['description'] = event.get('description')
+        # Handle deletion events
+        elif event['type'].endswith('_deleted'):
+            payload['id'] = event.get('id')
+        # Handle score events
+        elif event['type'] == 'score':
             payload.update({
                 "team": event['team'].name,
                 "points": event['points'],
-                "new_score": event.get("new_score_str", "") # Assuming game logic might provide this, or we fetch stats
+                "new_score": event.get("new_score_str", "")
             })
+        # Handle cup ended events
         elif event['type'] == 'cup_ended':
             payload["winner"] = event['winner'].description()
+        # Handle other game state events (game_started, game_paused, game_resumed, game_ended)
+        elif event['type'] in ['game_started', 'game_paused', 'game_resumed', 'game_ended']:
+            if 'game' in event:
+                payload['game_id'] = event['game'].id()
+                payload['game_desc'] = event['game'].description()
 
         # Add raw event details for generic display
         payload["details"] = str(event)

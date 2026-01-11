@@ -10,6 +10,16 @@ class Catalog:
     def __init__(self):
         self.attachDict = {} # user (or userID) -> [objectId]
         self.objectDict = {} # objectId -> object
+        self._broadcast_function = None  # Function to broadcast to all sessions
+    
+    def set_broadcast_function(self, func):
+        """Register a function to broadcast notifications to all active sessions."""
+        self._broadcast_function = func
+    
+    def _broadcast_to_all(self, event):
+        """Broadcast an event to all active sessions."""
+        if self._broadcast_function:
+            self._broadcast_function(event)
 
     def _resolve_team(self, val):
         if val in self.objectDict:
@@ -80,6 +90,16 @@ class Catalog:
 
         obj = creators[kind.lower()](**kw)
         self.objectDict[obj.id()] = obj
+        
+        # Broadcast creation event to all sessions
+        obj_type = kind.lower()
+        event = {
+            "type": f"{obj_type}_created",
+            "id": obj.id(),
+            "description": obj.description()
+        }
+        self._broadcast_to_all(event)
+        
         return obj.id()
 
     def list(self):
@@ -129,6 +149,15 @@ class Catalog:
 
         obj = self.objectDict.pop(id)
         
+        # Get object type for deletion event (before we modify obj)
+        obj_type = obj.__class__.__name__.lower()
+        if 'Cup' in obj_type:
+            obj_type = 'cup'
+        elif obj_type == 'game':
+            obj_type = 'game'
+        elif obj_type == 'team':
+            obj_type = 'team'
+        
         if isinstance(obj, Cup):
             for gid in list(obj._games.keys()):
                 gameObj = obj._games.pop(gid)
@@ -163,8 +192,13 @@ class Catalog:
                     self.objectDict.pop(playoffsCup.id())
 
                 obj._playOffs = None
-
-
+        
+        # Broadcast deletion event to all sessions
+        event = {
+            "type": f"{obj_type}_deleted",
+            "id": id
+        }
+        self._broadcast_to_all(event)
 
     def update(self, event):
         if event["type"] == "new_game":
@@ -174,6 +208,9 @@ class Catalog:
         if event["type"] == "new_group":
             group = event["group"]
             self.objectDict[group.id()] = group
+        
+        # Broadcast all events to all sessions (scores, game state changes, etc.)
+        self._broadcast_to_all(event)
 
 
     def __getstate__(self):
@@ -185,6 +222,7 @@ class Catalog:
     def __setstate__(self, state):
         self.objectDict = state["objectDict"]
         self.attachDict = {}
+        self._broadcast_function = None  # Will be set after unpickling
 
         self._restore_cup_observers()
     

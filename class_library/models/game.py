@@ -107,6 +107,10 @@ class Game():
         self._notify({"type": "game_ended", "game": self})
     
     def score(self, points, team, player=None):
+        
+        if self.is_running == False:
+            raise ValueError("Cannot score when game is not running")
+
         if team.name == self._home_team.name:
             team_key = "Home"
         elif team.name == self._away_team.name:
@@ -151,8 +155,17 @@ class Game():
 
         if self.is_ended:
             game_time_str = "Full Time"
+            status = "Ended"
         else:
             game_time_str = self._format_time(self._get_current_game_time())
+            if self.is_running:
+                status = "Running"
+            elif self._elapsed_time.total_seconds() > 0:
+                # Game has been started but is not running (paused)
+                status = "Paused"
+            else:
+                # Game has not been started yet
+                status = "Scheduled"
 
         return {
             "Home": {
@@ -166,6 +179,7 @@ class Game():
                 "Players": away_player_stats       
             },
             "Time": game_time_str,
+            "Status": status,
             "Timeline": self.timeline
         }
         
