@@ -46,7 +46,6 @@ function handleResponse(res) {
                  }
                  watchedIds.delete(res.data.id);
             }
-            // Only refresh full catalog on structural changes (create/delete)
             if(res.data.action === "create" || res.data.action === "delete") {
                 showToast(`${res.data.action.toUpperCase()}: ${res.data.id}`);
                 refreshCatalog(); 
@@ -54,13 +53,29 @@ function handleResponse(res) {
             return;
         }
 
-        // --- INSTANT STATE UPDATE LOGIC (START/PAUSE/RESUME/END) ---
+        if (res.data.type === 'player_added') {
+            const teamId = res.data.team_id;
+            const players = res.data.players;
+
+            const cachedItem = catalogCache.find(x => x.id === teamId);
+            if(cachedItem) {
+                if(!cachedItem.extra) cachedItem.extra = {};
+                cachedItem.extra.players = players;
+            }
+
+            if (currentViewId === teamId) {
+                updateTeamViewUI(teamId, players);
+            }
+            
+            showToast(`Player added to team.`);
+            return;
+        }
+
         const type = res.data.type;
         if (['game_started', 'game_paused', 'game_resumed', 'game_ended'].includes(type)) {
              const gid = res.data.game_id;
              const cached = catalogCache.find(x => x.id === gid);
              
-             // Update Cache
              if (cached && cached.extra) {
                  if (type === 'game_started' || type === 'game_resumed') {
                      cached.extra.is_running = true;
@@ -77,7 +92,6 @@ function handleResponse(res) {
                  }
              }
 
-             // Update List UI
              const statusEl = document.getElementById(`status-${gid}`);
              if (statusEl && cached && cached.extra) {
                  let txt = cached.extra.datetime_str;
@@ -87,25 +101,18 @@ function handleResponse(res) {
                  statusEl.innerHTML = txt;
              }
 
-             // Update Detail View if active
              if (currentViewId === gid) {
                  sendJson({ method: "STATS", obj: gid });
              }
              
-             // Log notification if watching
              if (watchedIds.has(gid)) logNotification(res.data);
              return; 
         }
         
-        // --- INSTANT SCORE UPDATE LOGIC ---
         if (res.data.type === 'score') {
-            // 1. Update Catalog List instantly without refresh
             const homeScoreEl = document.getElementById(`score-home-${res.data.game_id}`);
             const awayScoreEl = document.getElementById(`score-away-${res.data.game_id}`);
             
-            // We need to know which team scored to update the correct number. 
-            // The notification gives us "team" name.
-            // We can check against the name in the DOM or cache.
             const gameInCache = catalogCache.find(x => x.id === res.data.game_id);
             if(gameInCache && gameInCache.extra) {
                 if (res.data.team === gameInCache.extra.home_name) {
@@ -115,14 +122,11 @@ function handleResponse(res) {
                 }
             }
 
-            // 2. Update Live View if open
             if (res.data.game_id === currentViewId) {
                  sendJson({ method: "STATS", obj: currentViewId });
             }
         }
-        // ----------------------------------
         
-        // Log only if watching
         if (watchedIds.has(res.data.game_id) || watchedIds.has(res.data.id)) {
              logNotification(res.data);
         }
@@ -155,7 +159,6 @@ function handleResponse(res) {
             updateGameHUD(res.value);
         }
         else if (res.value && typeof res.value === 'object' && res.value.Timeline) {
-            // This is the full STATS response (with capital T Timeline usually, checking casing)
             renderGameStats(res.value);
             updateGameHUD({home_score: res.value.Home.Pts, away_score: res.value.Away.Pts});
         }
@@ -195,7 +198,6 @@ function viewObj(id, type) {
         container.innerHTML = "";
         container.appendChild(template);
         
-        // Insert Stats Container
         const statsDiv = document.createElement("div");
         statsDiv.id = "game-stats-container";
         statsDiv.innerHTML = "<p>Fetching Stats...</p>";
@@ -268,8 +270,23 @@ function sendScore() {
 }
 
 function promptAddPlayer(teamId) {
-    const name = prompt("Name:");
-    if(name) sendJson({ method: "ADD_PLAYER", obj: teamId, name: name });
+    // FIX: Single Prompt for Name and Number
+    const input = prompt("Enter Name and Jersey Number (e.g. 'Messi, 10'):");
+    if (!input) return;
+    
+    let name, number;
+    if (input.includes(',')) {
+        const parts = input.split(',');
+        name = parts[0].trim();
+        number = parts[1].trim();
+    } else {
+        alert("Please separate name and number with a comma.");
+        return;
+    }
+    
+    if (name && number) {
+        sendJson({ method: "ADD_PLAYER", obj: teamId, name: name, number: number });
+    }
 }
 
 function updateCatalogUI(items) {
@@ -288,17 +305,15 @@ function updateCatalogUI(items) {
         
         let desc = item.description;
         
-        // Default buttons (for teams, cups, etc.) including DELETE
         let buttons = `
             ${watchBtn}
             <button onclick="viewObj('${item.id}', '${item.type}')" style="background:#007bff">Details</button>
             <button onclick="deleteObj('${item.id}')" style="background:#dc3545">Del</button>
         `;
 
-        // --- FIX: Date/Time and Score Display ---
         if (item.type === 'game' && item.extra && item.extra.home_name) {
              const e = item.extra;
-             let statusText = e.datetime_str; // Default to date
+             let statusText = e.datetime_str; 
              if (e.is_running) statusText = "<span style='color:green; font-weight:bold'>Running</span>";
              else if (e.is_ended) statusText = "<span style='color:red'>Final</span>";
              else if (e.is_paused) statusText = "<span style='color:orange; font-weight:bold'>Paused</span>";
@@ -312,7 +327,6 @@ function updateCatalogUI(items) {
                 </div>
             `;
             
-            // MODIFIED: Added END button below Start/Pause, and added DELETE button
             buttons = `
                 ${watchBtn}
                 <button onclick="viewObj('${item.id}', 'game')" style="background:#007bff">Stats/Control</button>
@@ -326,7 +340,6 @@ function updateCatalogUI(items) {
                 <button onclick="deleteObj('${item.id}')" style="background:#dc3545; margin-top:4px;">Del</button>
             `;
         }
-        // ----------------------------------------
 
         if (item.type === 'team') {
             const opt = new Option(item.description, item.id);

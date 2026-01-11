@@ -15,10 +15,6 @@ class Session:
         self.DATA_FILE = datafile
         self.msg_queue = queue.Queue()
         
-        # FIX: Track recently processed event IDs to prevent double-notifications
-        # (Diamond problem: Game->Session AND Game->Catalog->Session)
-        self._processed_events = [] 
-
         with self.catalog_lock:
             self.catalog.attach_observer(self)
 
@@ -67,24 +63,31 @@ class Session:
         self.send_json({"status": "fail", "reason": str(reason)})
 
     def update(self, event):
-        # FIX: Check if we have already processed this exact event object
-        event_id = id(event)
-        if event_id in self._processed_events:
-            return # Skip duplicate
+        # FIX: Use Tagging instead of ID tracking.
+        # Python reuses memory IDs, so checking id(event) caused valid new events 
+        # to be dropped if they reused the memory of a recent event.
+        # Instead, we mark the event dict itself as handled by THIS session.
+        tag = f"__processed_{id(self)}"
+        if event.get(tag):
+            return # Already processed this specific event object (Diamond problem)
         
-        # Add to history and keep size small (buffer of last 20 events is sufficient)
-        self._processed_events.append(event_id)
-        if len(self._processed_events) > 20:
-            self._processed_events.pop(0)
+        # Mark as processed (safe because event is transient)
+        event[tag] = True
 
+        # Build payload, excluding our internal tag
         payload = {"type": event.get("type", "unknown")}
-        
-        if payload["type"] == "catalog_update":
-            payload.update(event)
+        for k, v in event.items():
+            if not k.startswith("__processed_"):
+                payload[k] = v
         
         if 'game' in event:
             payload['game_id'] = event['game'].id()
             payload['game_desc'] = event['game'].description()
+        
+        if event['type'] == 'player_added':
+            payload['team_id'] = event['team_id']
+            payload['players'] = event['players']
+
         if event['type'] == 'score':
             payload.update({"team": event['team'].name, "points": event['points']})
         elif event['type'] == 'cup_ended':
@@ -130,7 +133,10 @@ class Session:
                         
                         extra = {}
                         if obj_type == 'team':
-                            extra['players'] = list(obj.players.keys()) if hasattr(obj, 'players') else []
+                            if hasattr(obj, 'players'):
+                                extra['players'] = [f"{name} ({p.number})" for name, p in obj.players.items()]
+                            else:
+                                extra['players'] = []
                         
                         if obj_type == 'game':
                             try:
@@ -141,12 +147,10 @@ class Session:
                                 extra['away_score'] = stats['Away']['Pts']
                                 extra['home_id'] = obj.home().id()
                                 extra['away_id'] = obj.away().id()
-                                # --- FIX: Send Datetime and flags ---
                                 extra['datetime_str'] = obj._datetime.strftime("%Y-%m-%d %H:%M")
                                 extra['is_running'] = obj.is_running
                                 extra['is_ended'] = obj.is_ended
                                 extra['is_paused'] = obj.is_paused
-                                # ------------------------------------
                             except:
                                 pass 
 
@@ -178,12 +182,23 @@ class Session:
 
                     elif cmd == "ADD_PLAYER":
                         if hasattr(obj, 'addplayer'):
-                            obj.addplayer(data.get('name'), int(data.get('number', 0)))
-                            current_players = list(obj.players.keys()) if hasattr(obj, 'players') else []
+                            name = data.get('name')
+                            number = int(data.get('number', 0))
+                            
+                            obj.addplayer(name, number)
+                            
+                            current_players = [f"{n} ({p.number})" for n, p in obj.players.items()]
+                            
                             self.send_success(
-                                {"message": f"Player {data.get('name')} added", "players": current_players}, 
+                                {"message": f"Player {name} added", "players": current_players}, 
                                 meta={"action": "player_added", "obj_id": obj_id}
                             )
+
+                            self.catalog.notify_observers({
+                                "type": "player_added",
+                                "team_id": obj_id,
+                                "players": current_players
+                            })
                         else: raise ValueError("This object cannot add players")
                     
                     elif cmd == "START": obj.start(); self.send_success("Started")
