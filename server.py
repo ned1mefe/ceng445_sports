@@ -1,16 +1,17 @@
-import socket
 import threading
 import pickle
 import os
 import sys
+from websockets.sync import server
 from session import Session
-from catalog import Catalog
+from class_library.catalog import Catalog
 
 HOST = '0.0.0.0'
 PORT = 12345
 catalog = None
 catalog_lock = threading.RLock()
 DATA_FILE = "server_state.pkl"
+
 
 def load_state():
     global catalog
@@ -19,7 +20,6 @@ def load_state():
         try:
             with open(DATA_FILE, 'rb') as f:
                 catalog = pickle.load(f)
-
         except Exception as e:
             print(f"Error loading state: {e}")
             print("Starting with a fresh catalog.")
@@ -28,6 +28,7 @@ def load_state():
         print("No saved state found. Starting fresh.")
         catalog = Catalog()
 
+
 def save_state_on_exit():
     print("Saving state before shutdown...")
     with catalog_lock:
@@ -35,32 +36,35 @@ def save_state_on_exit():
             pickle.dump(catalog, f)
     print("State saved.")
 
+
+def agent(wsock):
+    """
+    WebSocket agent handling a single client connection.
+    This function is called by the server for each new connection.
+    """
+    addr = wsock.remote_address
+    print(f"Connection accepted from {addr}")
+
+    # Create a session handler for this connection
+    session = Session(
+        wsock=wsock,
+        addr=addr,
+        catalog=catalog,
+        catalog_lock=catalog_lock,
+        datafile=DATA_FILE
+    )
+
+    session.run()
+
+
 if __name__ == "__main__":
     load_state()
 
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
-    # Allow immediate reuse of the port (prevents "Address already in use" errors after restart)
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    print(f"WebSocket Server running on {HOST}:{PORT}")
+
     try:
-        server_socket.bind((HOST, PORT))
-        server_socket.listen(10)
-
-        print(f"Server running on {HOST}:{PORT}")
-
-        while True:
-            client_sock, addr = server_socket.accept()
-            print(f"Connection accepted from {addr}")
-
-            session_thread = Session(
-                sock=client_sock, 
-                addr=addr,
-                catalog=catalog,
-                catalog_lock=catalog_lock,
-                datafile=DATA_FILE
-            )
-            session_thread.daemon = True # when server exits, threads exit too
-            session_thread.start()
+        with server.serve(agent, HOST, PORT) as srv:
+            srv.serve_forever()
 
     except KeyboardInterrupt:
         print("\nServer stopping...")
@@ -68,5 +72,4 @@ if __name__ == "__main__":
         print(f"Server error: {e}")
     finally:
         save_state_on_exit()
-        server_socket.close()
         sys.exit(0)
