@@ -15,6 +15,9 @@ function connect() {
         document.getElementById('status-indicator').className = "connected";
         document.getElementById('main-app').classList.remove('hidden');
         document.getElementById('connection-panel').classList.add('hidden');
+        
+        populateCupTypes();
+        
         sendJson({ method: "USER", username: username });
         refreshCatalog();
     };
@@ -45,23 +48,44 @@ function handleResponse(res) {
                      currentViewId = null;
                  }
                  watchedIds.delete(res.data.id);
+                 const msg = `🗑️ <strong>Deleted</strong>: ${res.data.id}`;
+                 showToast(msg);
+                 logNotification({ type: 'catalog_delete', text: msg });
             }
-            if(res.data.action === "create" || res.data.action === "delete") {
-                showToast(`${res.data.action.toUpperCase()}: ${res.data.id}`);
+            if(res.data.action === "create") {
+                // FIX: Styled "Created" notification
+                let icon = "🆕";
+                let text = "Created";
+                if (res.data.id.startsWith("game")) { icon = "🎮"; text = "Game Created"; }
+                else if (res.data.id.startsWith("team")) { icon = "👕"; text = "Team Created"; }
+                else if (res.data.id.startsWith("cup")) { icon = "🏆"; text = "Cup Created"; }
+
+                const msg = `${icon} <strong>${text}</strong><br>${res.data.id}`;
+                showToast(msg);
+                
+                // Add to Log Panel
+                logNotification({
+                    type: 'catalog_create', 
+                    htmlContent: msg
+                });
+                
                 refreshCatalog(); 
+            } else if (res.data.action === "delete") {
+                refreshCatalog();
             }
             return;
         }
 
-        // --- FIX: Handle Cup Ended ---
         if (res.data.type === 'cup_ended') {
             if (watchedIds.has(res.data.cup_id)) {
-                showToast(`🏆 Cup ${res.data.cup_id} Ended! Winner: ${res.data.winner}`);
+                showToast(`🏆 <strong>Cup Ended!</strong><br>Winner: ${res.data.winner}`);
                 logNotification(res.data);
+            }
+            if (currentViewId === res.data.cup_id) {
+                sendJson({ method: "STANDINGS", obj: currentViewId });
             }
             return;
         }
-        // -----------------------------
 
         const type = res.data.type;
         if (['game_started', 'game_paused', 'game_resumed', 'game_ended'].includes(type)) {
@@ -97,9 +121,22 @@ function handleResponse(res) {
                  sendJson({ method: "STATS", obj: gid });
              }
              
-             // FIX: Check if we are watching Game OR Team OR Parent Cup
-             const isRelated = res.data.related_ids && res.data.related_ids.some(id => watchedIds.has(id));
-             if (watchedIds.has(gid) || watchedIds.has(res.data.home_id) || watchedIds.has(res.data.away_id) || isRelated) {
+             const isRelated = res.data.related_ids && res.data.related_ids.includes(currentViewId);
+             if (currentViewType === 'cup' && isRelated) {
+                 sendJson({ method: "STANDINGS", obj: currentViewId });
+             }
+
+             // FIX: Styled Game State Notifications
+             if (watchedIds.has(gid) || watchedIds.has(res.data.home_id) || watchedIds.has(res.data.away_id) || (res.data.related_ids && res.data.related_ids.some(id => watchedIds.has(id)))) {
+                 const desc = res.data.game_desc || ("Game " + gid);
+                 let msg = "";
+                 
+                 if (type === 'game_started') msg = `▶️ <strong>Game Started</strong><br>${desc}`;
+                 else if (type === 'game_paused') msg = `⏸️ <strong>Game Paused</strong><br>${desc}`;
+                 else if (type === 'game_resumed') msg = `▶️ <strong>Game Resumed</strong><br>${desc}`;
+                 else if (type === 'game_ended') msg = `🏁 <strong>Game Ended</strong><br>${desc}`;
+                 
+                 showToast(msg);
                  logNotification(res.data);
              }
              return; 
@@ -121,9 +158,13 @@ function handleResponse(res) {
             if (res.data.game_id === currentViewId) {
                  sendJson({ method: "STATS", obj: currentViewId });
             }
+
+            const isRelated = res.data.related_ids && res.data.related_ids.includes(currentViewId);
+            if (currentViewType === 'cup' && isRelated) {
+                sendJson({ method: "STANDINGS", obj: currentViewId });
+            }
         }
         
-        // FIX: Check related IDs (Cups) for score updates too
         const isRelated = res.data.related_ids && res.data.related_ids.some(id => watchedIds.has(id));
         if (watchedIds.has(res.data.game_id) || watchedIds.has(res.data.id) || watchedIds.has(res.data.home_id) || watchedIds.has(res.data.away_id) || isRelated) {
              logNotification(res.data);
@@ -152,6 +193,11 @@ function handleResponse(res) {
                 cachedItem.extra.players = res.value.players;
             }
             if (currentViewId === res.obj_id) updateTeamViewUI(res.obj_id, res.value.players);
+        }
+        else if (res.action === "standings") {
+            if (currentViewId === res.id) {
+                renderCupStandings(res.value);
+            }
         }
         else if (res.value && typeof res.value === 'object' && res.value.home_score !== undefined) {
             updateGameHUD(res.value);
@@ -206,9 +252,102 @@ function viewObj(id, type) {
     } else if (type === 'team') {
         const obj = catalogCache.find(x => x.id === id);
         updateTeamViewUI(id, obj && obj.extra ? obj.extra.players : []);
+    } else if (type === 'cup') {
+        container.innerHTML = `<h4>Cup: ${id}</h4><div id="cup-standings-area">Fetching Standings...</div>`;
+        sendJson({ method: "STANDINGS", obj: id });
     } else {
         container.innerHTML = `<h4>Details for ${type} (${id})</h4>`;
     }
+}
+
+function populateCupTypes() {
+    const sel = document.getElementById('cup-type');
+    if (!sel) return;
+    sel.innerHTML = "";
+    const types = ["ELIMINATION", "ELIMINATION2", "LEAGUE", "LEAGUE2", "GROUP", "GROUP2"];
+    types.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.text = t;
+        sel.appendChild(opt);
+    });
+}
+
+function renderCupStandings(dataWrapper) {
+    const area = document.getElementById('cup-standings-area');
+    if (!area) return;
+    area.innerHTML = "";
+
+    let data = dataWrapper.standings;
+    const games = dataWrapper.games;
+
+    let html = "<h5>Standings</h5>";
+    
+    if (Array.isArray(data)) {
+        // LEAGUE CUP
+        html += "<table class='table'><thead><tr><th>Team</th><th>Pts</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th></tr></thead><tbody>";
+        data.forEach(row => {
+             const name = row[0];
+             const s = row[1];
+             if(s) {
+                 html += `<tr><td>${name}</td><td>${s.Points}</td><td>${s.Won}</td><td>${s.Draw}</td><td>${s.Lost}</td><td>${s.Scored}</td><td>${s.Conceded}</td><td>${s.Diff}</td></tr>`;
+             } else {
+                 html += `<tr><td>${name}</td><td colspan='7'>N/A</td></tr>`;
+             }
+        });
+        html += "</tbody></table>";
+    } else {
+        const keys = Object.keys(data || {});
+        if (keys.some(k => k.startsWith("Group"))) {
+            // GROUP CUP
+             keys.forEach(k => {
+                 html += `<h6>${k}</h6>`;
+                 if (Array.isArray(data[k])) {
+                     html += "<table class='table table-sm' style='font-size:0.8em'><thead><tr><th>Team</th><th>Pts</th></tr></thead><tbody>";
+                     data[k].forEach(row => {
+                         html += `<tr><td>${row[0]}</td><td>${row[1].Points}</td></tr>`;
+                     });
+                     html += "</tbody></table>";
+                 } else {
+                     html += "<pre>" + JSON.stringify(data[k], null, 2) + "</pre>";
+                 }
+             });
+        } else {
+            // ELIMINATION CUP
+            html += "<table class='table'><thead><tr><th>Team</th><th>Round</th><th>Won Against</th><th>Lost Against</th></tr></thead><tbody>";
+            Object.entries(data || {}).forEach(([name, info]) => {
+                 const wonStr = info.Won ? info.Won.map(w => `${w[0]} (${w[1]}-${w[2]})`).join(", ") : "";
+                 const lostStr = info.Lost ? info.Lost.map(l => `${l[0]} (${l[1]}-${l[2]})`).join(", ") : "";
+
+                 html += `<tr>
+                    <td><strong>${name}</strong></td>
+                    <td>${info.Round}</td>
+                    <td style="color:green; font-size:0.9em">${wonStr}</td>
+                    <td style="color:red; font-size:0.9em">${lostStr}</td>
+                 </tr>`;
+            });
+            html += "</tbody></table>";
+        }
+    }
+    
+    // Render Matches
+    if (games && games.length > 0) {
+        html += "<h5 style='margin-top:15px;'>Matches</h5>";
+        html += "<table class='table table-striped' style='font-size:0.9em;'><thead><tr><th>Date</th><th>Home</th><th>Score</th><th>Away</th><th>Status</th></tr></thead><tbody>";
+        games.forEach(g => {
+            const status = g.is_ended ? "Final" : "Scheduled";
+            html += `<tr>
+                <td>${g.datetime}</td>
+                <td>${g.home}</td>
+                <td style="font-weight:bold;">${g.score_home} - ${g.score_away}</td>
+                <td>${g.away}</td>
+                <td>${status}</td>
+            </tr>`;
+        });
+        html += "</tbody></table>";
+    }
+
+    area.innerHTML = html;
 }
 
 function renderGameStats(stats) {
@@ -248,13 +387,46 @@ function updateTeamViewUI(id, players) {
         </div>`;
 }
 
+// FIX: Improved Logger to handle formatted HTML and Icons
 function logNotification(data) {
     const log = document.getElementById('notification-log');
     const entry = document.createElement('div');
     entry.className = 'log-entry';
-    let content = (data.type === 'score') ? `<strong>GOAL!</strong> ${data.team} (+${data.points})` : JSON.stringify(data);
-    if(data.type === 'cup_ended') content = `<strong>🏆 WINNER:</strong> ${data.winner}`;
-    entry.innerHTML = `${content} <small>${new Date().toLocaleTimeString()}</small>`;
+    
+    let content = "";
+    
+    if (data.htmlContent) {
+        // Direct HTML pass-through from handleResponse
+        content = data.htmlContent;
+    }
+    else if (data.type === 'score') {
+        content = `<strong>⚽ GOAL!</strong> ${data.team} (+${data.points})`;
+    } 
+    else if (data.type === 'cup_ended') {
+        content = `<strong>🏆 WINNER:</strong> ${data.winner}`;
+    }
+    else if (['game_started', 'game_paused', 'game_resumed', 'game_ended'].includes(data.type)) {
+        let icon = "🔔";
+        let title = "Update";
+        if (data.type === 'game_started') { icon = "▶️"; title = "Started"; }
+        if (data.type === 'game_paused') { icon = "⏸️"; title = "Paused"; }
+        if (data.type === 'game_resumed') { icon = "▶️"; title = "Resumed"; }
+        if (data.type === 'game_ended') { icon = "🏁"; title = "Ended"; }
+        
+        content = `<strong>${icon} Game ${title}</strong><br><small>${data.game_desc || data.game_id}</small>`;
+    }
+    else if (data.type === 'catalog_delete') {
+        content = data.text;
+    }
+    else if (data.type === 'player_added') {
+        content = `<strong>👤 Player Added</strong><br>${data.players[data.players.length-1]}`;
+    }
+    else {
+        content = JSON.stringify(data);
+    }
+
+    const time = new Date().toLocaleTimeString();
+    entry.innerHTML = `${content} <div style="font-size:0.7em; color:#888; margin-top:2px;">${time}</div>`;
     log.insertBefore(entry, log.firstChild);
 }
 
@@ -269,8 +441,18 @@ function sendScore() {
 }
 
 function promptAddPlayer(teamId) {
-    const name = prompt("Name:");
-    if(name) sendJson({ method: "ADD_PLAYER", obj: teamId, name: name });
+    const name = prompt("Enter Player Name:");
+    if (!name) return;
+    
+    const number = prompt("Enter Jersey Number:");
+    if (number === null) return; // User cancelled
+    
+    sendJson({ 
+        method: "ADD_PLAYER", 
+        obj: teamId, 
+        name: name, 
+        number: parseInt(number) || 0 
+    });
 }
 
 function updateCatalogUI(items) {
@@ -359,7 +541,7 @@ function showToast(msg) {
     const area = document.getElementById('notification-area');
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.innerText = msg;
+    toast.innerHTML = msg; 
     area.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 }

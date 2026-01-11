@@ -15,6 +15,9 @@ class Session:
         self.DATA_FILE = datafile
         self.msg_queue = queue.Queue()
         
+        # Track watching to calculate related_ids
+        self.watching = set() 
+        
         with self.catalog_lock:
             self.catalog.attach_observer(self)
 
@@ -63,7 +66,6 @@ class Session:
         self.send_json({"status": "fail", "reason": str(reason)})
 
     def update(self, event):
-        # Tagging to prevent duplicate/corrupted events (Diamond problem)
         tag = f"__processed_{id(self)}"
         if event.get(tag):
             return 
@@ -74,36 +76,29 @@ class Session:
             if not k.startswith("__processed_"):
                 payload[k] = v
         
-        # --- FIX: Associate Game events with Watched Cups ---
         if 'game' in event:
             game_obj = event['game']
             payload['game_id'] = game_obj.id()
-            payload['game_desc'] = game_obj.description()
+            payload['game_desc'] = str(game_obj)
             payload['home_id'] = game_obj.home().id()
             payload['away_id'] = game_obj.away().id()
 
-            # Check if this game belongs to any Cup the user is watching
-            watched_items = self.catalog.attachDict.get(self, [])
             related = []
-            for oid in watched_items:
+            for oid in self.watching:
                 if oid in self.catalog.objectDict:
                     obj = self.catalog.objectDict[oid]
-                    # Check if object is a Cup (has _games attribute) and contains this game
                     if hasattr(obj, '_games') and game_obj.id() in obj._games:
                         related.append(oid)
             
             if related:
                 payload['related_ids'] = related
-        # ----------------------------------------------------
 
         if event['type'] == 'score':
             payload.update({"team": event['team'].name, "points": event['points']})
         
-        # --- FIX: Handle Cup Ended Notification ---
         elif event['type'] == 'cup_ended':
             payload["cup_id"] = event["cup"].id()
             payload["winner"] = str(event['winner'])
-        # ------------------------------------------
             
         payload["details"] = str(event)
         self.msg_queue.put(payload)
@@ -169,7 +164,7 @@ class Session:
                         items.append({
                             "id": oid,
                             "type": obj_type,
-                            "description": obj.description(),
+                            "description": str(obj),
                             "extra": extra
                         })
                     self.send_success(items)
@@ -186,10 +181,12 @@ class Session:
                     
                     if cmd == "WATCH":
                         self.catalog.attach(obj_id, self)
+                        self.watching.add(obj_id) 
                         self.send_success(f"Watching {obj_id}", meta={"action": "watch_confirmed", "id": obj_id})
 
                     elif cmd == "UNWATCH":
                         self.catalog.detach(obj_id, self)
+                        self.watching.discard(obj_id)
                         self.send_success(f"Unwatched {obj_id}", meta={"action": "unwatch_confirmed", "id": obj_id})
 
                     elif cmd == "ADD_PLAYER":
@@ -211,7 +208,29 @@ class Session:
                         if hasattr(obj, 'stats'): self.send_success(obj.stats())
                         else: self.send_success({"info": str(obj)})
                         
-                    elif cmd == "STANDINGS": self.send_success(obj.standings())
+                    elif cmd == "STANDINGS": 
+                        # FIX: Return both standings AND games so the frontend can display the full schedule
+                        response = {"standings": obj.standings()}
+                        if hasattr(obj, '_games'):
+                            games_list = []
+                            # Sort games by date/ID to keep order stable
+                            for gid, g in obj._games.items():
+                                try:
+                                    stats = g.stats()
+                                    games_list.append({
+                                        "id": g.id(),
+                                        "home": g.home().name,
+                                        "away": g.away().name,
+                                        "score_home": stats['Home']['Pts'],
+                                        "score_away": stats['Away']['Pts'],
+                                        "is_ended": g.is_ended,
+                                        "datetime": g._datetime.strftime("%Y-%m-%d %H:%M")
+                                    })
+                                except:
+                                    pass # Skip malformed games
+                            response["games"] = sorted(games_list, key=lambda x: x['datetime'])
+
+                        self.send_success(response, meta={"action": "standings", "id": obj_id})
 
                     elif cmd == "SCORE":
                         pts = int(data.get("points", 1))
