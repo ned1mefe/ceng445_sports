@@ -181,7 +181,6 @@ class Catalog:
         })
 
     def update(self, event):
-        # Handle internal logic
         if event["type"] == "new_game":
             game = event["game"]
             self.objectDict[game.id()] = game
@@ -194,11 +193,9 @@ class Catalog:
             group = event["group"]
             self.objectDict[group.id()] = group
 
-        # --- FIX: Forward game events to all Catalog Observers (Sessions) ---
-        # This allows the catalog list to update scores instantly for everyone
+        
         if event.get("type") in ["score", "game_started", "game_ended", "game_paused", "game_resumed"]:
             self.notify_observers(event)
-        # ------------------------------------------------------------------
 
     def __getstate__(self):
         return { "objectDict": self.objectDict }
