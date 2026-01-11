@@ -59,6 +59,13 @@ class Catalog:
 
         cup.watch(self) 
         cup.initialize_games()
+
+        if type in ["GROUP", "GROUP2"]:
+            for leagueCup in cup._groups.values():
+                leagueCup.unwatch(self)
+
+            cup.watch(self) 
+
         return cup
 
     def create(self, **kw):

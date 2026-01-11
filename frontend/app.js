@@ -48,9 +48,9 @@ function handleResponse(res) {
                      currentViewId = null;
                  }
                  watchedIds.delete(res.data.id);
-                 const msg = `🗑️ <strong>Deleted</strong>: ${res.data.id}`;
+                 const msg = `🗑️ <strong>Deleted</strong>`;
                  showToast(msg);
-                 logNotification({ type: 'catalog_delete', text: msg });
+                //  logNotification({ type: 'catalog_delete', text: msg });
             }
             if(res.data.action === "create") {
                 // FIX: Styled "Created" notification
@@ -60,14 +60,14 @@ function handleResponse(res) {
                 else if (res.data.id.startsWith("team")) { icon = "👕"; text = "Team Created"; }
                 else if (res.data.id.startsWith("cup")) { icon = "🏆"; text = "Cup Created"; }
 
-                const msg = `${icon} <strong>${text}</strong><br>${res.data.id}`;
+                const msg = `${icon} <strong>${text}</strong><br>${res.data.description}`;
                 showToast(msg);
                 
                 // Add to Log Panel
-                logNotification({
-                    type: 'catalog_create', 
-                    htmlContent: msg
-                });
+                // logNotification({
+                //     type: 'catalog_create', 
+                //     htmlContent: msg
+                // });
                 
                 refreshCatalog(); 
             } else if (res.data.action === "delete") {
@@ -272,7 +272,6 @@ function populateCupTypes() {
         sel.appendChild(opt);
     });
 }
-
 function renderCupStandings(dataWrapper) {
     const area = document.getElementById('cup-standings-area');
     if (!area) return;
@@ -280,57 +279,111 @@ function renderCupStandings(dataWrapper) {
 
     let data = dataWrapper.standings;
     const games = dataWrapper.games;
+    let html = "";
 
-    let html = "<h5>Standings</h5>";
-    
-    if (Array.isArray(data)) {
-        // LEAGUE CUP
-        html += "<table class='table'><thead><tr><th>Team</th><th>Pts</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th></tr></thead><tbody>";
-        data.forEach(row => {
+    // 1. Helper to render a League-style table (Used for LeagueCup and GroupCup Groups)
+    // Columns: Team, Won, Lost, Draw, Avg (Diff), Scored, Conceded, Points
+    const renderLeagueTable = (standingsData) => {
+        let t = `
+        <table class='table'>
+            <thead>
+                <tr>
+                    <th>Team</th>
+                    <th>Won</th>
+                    <th>Lost</th>
+                    <th>Draw</th>
+                    <th>Avg</th>
+                    <th>Scored</th>
+                    <th>Conceded</th>
+                    <th>Points</th>
+                </tr>
+            </thead>
+            <tbody>`;
+            
+        standingsData.forEach(row => {
              const name = row[0];
              const s = row[1];
              if(s) {
-                 html += `<tr><td>${name}</td><td>${s.Points}</td><td>${s.Won}</td><td>${s.Draw}</td><td>${s.Lost}</td><td>${s.Scored}</td><td>${s.Conceded}</td><td>${s.Diff}</td></tr>`;
+                 t += `<tr>
+                    <td><strong>${name}</strong></td>
+                    <td>${s.Won}</td>
+                    <td>${s.Lost}</td>
+                    <td>${s.Draw}</td>
+                    <td>${s.Diff}</td> 
+                    <td>${s.Scored}</td>
+                    <td>${s.Conceded}</td>
+                    <td><strong>${s.Points}</strong></td>
+                 </tr>`;
              } else {
-                 html += `<tr><td>${name}</td><td colspan='7'>N/A</td></tr>`;
+                 t += `<tr><td>${name}</td><td colspan='7'>N/A</td></tr>`;
              }
         });
-        html += "</tbody></table>";
+        t += "</tbody></table>";
+        return t;
+    };
+
+    // 2. Helper to render an Elimination-style table (Used for EliminationCup and GroupCup PlayOffs)
+    const renderEliminationTable = (standingsData) => {
+        let t = `
+        <table class='table'>
+            <thead>
+                <tr>
+                    <th>Team</th>
+                    <th>Round</th>
+                    <th>Won Against</th>
+                    <th>Lost Against</th>
+                </tr>
+            </thead>
+            <tbody>`;
+            
+        Object.entries(standingsData || {}).forEach(([name, info]) => {
+             const wonStr = info.Won ? info.Won.map(w => `${w[0]} (${w[1]}-${w[2]})`).join(", ") : "";
+             const lostStr = info.Lost ? info.Lost.map(l => `${l[0]} (${l[1]}-${l[2]})`).join(", ") : "";
+
+             t += `<tr>
+                <td><strong>${name}</strong></td>
+                <td>${info.Round}</td>
+                <td style="color:green; font-size:0.9em">${wonStr}</td>
+                <td style="color:red; font-size:0.9em">${lostStr}</td>
+             </tr>`;
+        });
+        t += "</tbody></table>";
+        return t;
+    };
+
+    html += "<h5>Standings</h5>";
+
+    // 3. Main Logic to select the correct renderer
+    if (Array.isArray(data)) {
+        // --- LEAGUE CUP ---
+        html += renderLeagueTable(data);
     } else {
         const keys = Object.keys(data || {});
-        if (keys.some(k => k.startsWith("Group"))) {
-            // GROUP CUP
-             keys.forEach(k => {
+        // Check if this looks like a Group Cup (has "Group X" or "PlayOffs" keys)
+        const isGroupCup = keys.some(k => k.startsWith("Group") || k === "PlayOffs");
+
+        if (isGroupCup) {
+            // --- GROUP CUP ---
+            // Sort to ensure Groups A, B... appear before PlayOffs
+            keys.sort(); 
+            
+            keys.forEach(k => {
                  html += `<h6>${k}</h6>`;
                  if (Array.isArray(data[k])) {
-                     html += "<table class='table table-sm' style='font-size:0.8em'><thead><tr><th>Team</th><th>Pts</th></tr></thead><tbody>";
-                     data[k].forEach(row => {
-                         html += `<tr><td>${row[0]}</td><td>${row[1].Points}</td></tr>`;
-                     });
-                     html += "</tbody></table>";
-                 } else {
-                     html += "<pre>" + JSON.stringify(data[k], null, 2) + "</pre>";
+                     // Groups use the League format
+                     html += renderLeagueTable(data[k]);
+                 } else if (typeof data[k] === 'object') {
+                     // PlayOffs use the Elimination format
+                     html += renderEliminationTable(data[k]);
                  }
              });
         } else {
-            // ELIMINATION CUP
-            html += "<table class='table'><thead><tr><th>Team</th><th>Round</th><th>Won Against</th><th>Lost Against</th></tr></thead><tbody>";
-            Object.entries(data || {}).forEach(([name, info]) => {
-                 const wonStr = info.Won ? info.Won.map(w => `${w[0]} (${w[1]}-${w[2]})`).join(", ") : "";
-                 const lostStr = info.Lost ? info.Lost.map(l => `${l[0]} (${l[1]}-${l[2]})`).join(", ") : "";
-
-                 html += `<tr>
-                    <td><strong>${name}</strong></td>
-                    <td>${info.Round}</td>
-                    <td style="color:green; font-size:0.9em">${wonStr}</td>
-                    <td style="color:red; font-size:0.9em">${lostStr}</td>
-                 </tr>`;
-            });
-            html += "</tbody></table>";
+            // --- ELIMINATION CUP (Standalone) ---
+            html += renderEliminationTable(data);
         }
     }
     
-    // Render Matches
+    // 4. Render Matches List (Shared across all cups)
     if (games && games.length > 0) {
         html += "<h5 style='margin-top:15px;'>Matches</h5>";
         html += "<table class='table table-striped' style='font-size:0.9em;'><thead><tr><th>Date</th><th>Home</th><th>Score</th><th>Away</th><th>Status</th></tr></thead><tbody>";
@@ -349,7 +402,6 @@ function renderCupStandings(dataWrapper) {
 
     area.innerHTML = html;
 }
-
 function renderGameStats(stats) {
     const container = document.getElementById("game-stats-container");
     if(!container) return;
@@ -378,11 +430,24 @@ function renderGameStats(stats) {
 
 function updateTeamViewUI(id, players) {
     const container = document.getElementById('active-object-container');
-    const playersHtml = (players && players.length > 0) ? players.join(", ") : "No players found";
+    
+    // Create a list of players with their numbers
+    let playersHtml = "<ul>";
+    if (players && players.length > 0) {
+        players.forEach(playerStr => {
+            // playerStr is already formatted as "Name (Number)" by the backend
+            playersHtml += `<li>${playerStr}</li>`;
+        });
+    } else {
+        playersHtml += "<li>No players found</li>";
+    }
+    playersHtml += "</ul>";
+
     container.innerHTML = `
         <div class="card" style="width:100%">
             <h4>Team: ${id}</h4>
-            <p><strong>Players:</strong> ${playersHtml}</p>
+            <p><strong>Roster:</strong></p>
+            ${playersHtml}
             <button onclick="promptAddPlayer('${id}')">Add Player</button>
         </div>`;
 }
@@ -430,7 +495,10 @@ function logNotification(data) {
     log.insertBefore(entry, log.firstChild);
 }
 
-function gameControl(id, action) { if(!id) return; sendJson({ method: action, obj: id }); }
+function gameControl(id, action) { 
+    if(!id) return; 
+    sendJson({ method: action, obj: id }); 
+}
 
 function sendScore() {
     if(!currentViewId) return;
@@ -441,17 +509,29 @@ function sendScore() {
 }
 
 function promptAddPlayer(teamId) {
-    const name = prompt("Enter Player Name:");
-    if (!name) return;
-    
-    const number = prompt("Enter Jersey Number:");
-    if (number === null) return; // User cancelled
+    // Asking in a format that implies a single thought process or box
+    const input = prompt("Enter Player Name and Jersey Number (e.g. Messi, 10):");
+    if (!input) return;
+
+    const parts = input.split(",");
+    if (parts.length < 2) {
+        alert("Please provide both name and number separated by a comma.");
+        return;
+    }
+
+    const name = parts[0].trim();
+    const number = parseInt(parts[1].trim());
+
+    if (!name || isNaN(number)) {
+        alert("Invalid input format.");
+        return;
+    }
     
     sendJson({ 
         method: "ADD_PLAYER", 
         obj: teamId, 
         name: name, 
-        number: parseInt(number) || 0 
+        number: number 
     });
 }
 
@@ -515,7 +595,7 @@ function updateCatalogUI(items) {
         }
 
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${item.id}</td><td>${item.type}</td><td>${desc}</td><td style="display:flex; flex-direction:column; gap:2px;">${buttons}</td>`;
+        tr.innerHTML = `<td>${item.type}</td><td>${desc}</td><td style="display:flex; flex-direction:column; gap:2px;">${buttons}</td>`;
         tbody.appendChild(tr);
     });
 }

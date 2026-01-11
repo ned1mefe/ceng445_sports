@@ -192,7 +192,10 @@ class Session:
                     elif cmd == "ADD_PLAYER":
                         if hasattr(obj, 'addplayer'):
                             obj.addplayer(data.get('name'), int(data.get('number', 0)))
-                            current_players = list(obj.players.keys()) if hasattr(obj, 'players') else []
+                            
+                            # FIX: Format the player list with numbers immediately
+                            current_players = [f"{name} ({p.number})" for name, p in obj.players.items()]
+                            
                             self.send_success(
                                 {"message": f"Player {data.get('name')} added", "players": current_players}, 
                                 meta={"action": "player_added", "obj_id": obj_id}
