@@ -103,5 +103,8 @@ class Cup():
     def _restore_observers(self):
         for game in self._games.values():
             game.watch(self)
+
+    def gametree(self):
+        pass
     
     

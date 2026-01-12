@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,29 +8,57 @@
     <link rel="stylesheet" href="style.css">
     <style>
         /* Extra styles for the new notification panel */
-        .main-layout { display: flex; gap: 20px; height: 90vh; }
-        .left-column { flex: 3; display: flex; flex-direction: column; overflow-y: auto; }
-        .right-column { flex: 1; background: #fff; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; }
-        
-        #notification-log { 
-            flex: 1; 
-            overflow-y: auto; 
-            background: #f9f9f9; 
-            border: 1px solid #eee; 
-            padding: 5px; 
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            height: 90vh;
+        }
+
+        .left-column {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .right-column {
+            flex: 1;
+            background: #fff;
+            border-left: 2px solid #ddd;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #notification-log {
+            flex: 1;
+            overflow-y: auto;
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            padding: 5px;
             font-size: 0.9em;
         }
-        .log-entry { 
-            padding: 8px; 
-            border-bottom: 1px solid #ddd; 
-            margin-bottom: 5px; 
+
+        .log-entry {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 5px;
             background: white;
             border-left: 4px solid #007bff;
         }
-        .log-entry.alert { border-left-color: #dc3545; }
-        .log-entry small { color: #666; display: block; margin-top: 2px; }
+
+        .log-entry.alert {
+            border-left-color: #dc3545;
+        }
+
+        .log-entry small {
+            color: #666;
+            display: block;
+            margin-top: 2px;
+        }
     </style>
 </head>
+
 <body>
 
     <div id="connection-panel">
@@ -41,7 +70,7 @@
 
     <div id="main-app" class="hidden">
         <div class="main-layout">
-            
+
             <div class="left-column">
                 <div class="panel">
                     <h3>Create Objects</h3>
@@ -56,8 +85,12 @@
 
                         <div class="card">
                             <h4>New Game</h4>
-                            <select id="game-home-select"><option>Select Home</option></select>
-                            <select id="game-away-select"><option>Select Away</option></select>
+                            <select id="game-home-select">
+                                <option>Select Home</option>
+                            </select>
+                            <select id="game-away-select">
+                                <option>Select Away</option>
+                            </select>
                             <input type="datetime-local" id="game-date">
                             <button onclick="createGame()">Create Game</button>
                         </div>
@@ -82,7 +115,7 @@
                     <div id="active-object-container">
                         <p style="color:#888; font-style:italic;">Click "Details" on an object to control it here.</p>
                     </div>
-                    
+
                     <div id="game-controls-template" class="hidden">
                         <div class="game-hud">
                             <div class="score-board">
@@ -133,9 +166,21 @@
             </div>
         </div>
     </div>
-    
+
     <div id="notification-area"></div>
+
+    <div id="tree-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tournament Bracket</h3>
+                <button onclick="closeModal()">Close</button>
+            </div>
+            <div id="bracket-container" class="bracket-wrapper">
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
+
 </html>

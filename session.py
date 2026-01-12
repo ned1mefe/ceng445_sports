@@ -234,6 +234,13 @@ class Session:
 
                         self.send_success(response, meta={"action": "standings", "id": obj_id})
 
+                    elif cmd == "GAMETREE":
+                        if hasattr(obj, 'gametree'):
+                            tree_data = obj.gametree()
+                            self.send_success(tree_data, meta={"action": "gametree_data", "id": obj_id})
+                        else:
+                            self.send_error("This object does not support Game Tree generation.")
+
                     elif cmd == "SCORE":
                         pts = int(data.get("points", 1))
                         team_id = data.get("team")

@@ -123,3 +123,42 @@ class EliminationCup(Cup):
                 self._schedule_round()
             else:
                 self._notify({"type": "cup_ended", "cup": self, "winner": self._active_teams[0]})
+
+        
+    def gametree(self):
+        tree_data = []
+        
+        for team_name, stats in self._standings.items():
+            for round_index, win_record in enumerate(stats["Won"]):
+                loser_name, w_score, l_score = win_record
+                
+                match_data = {
+                    "round": round_index + 1, 
+                    "home": team_name,        
+                    "away": loser_name,
+                    "score_home": w_score,
+                    "score_away": l_score,
+                    "winner": team_name,
+                    "status": "finished"
+                }
+                tree_data.append(match_data)
+        
+        for game in self._games.values():
+            if not game.is_ended:
+                home_team = game.home().name
+                away_team = game.away().name
+                
+                current_round = self._standings[home_team]["Round"]
+                
+                match_data = {
+                    "round": current_round,
+                    "home": home_team,
+                    "away": away_team,
+                    "score_home": 0, 
+                    "score_away": 0,
+                    "winner": None,
+                    "status": "active"
+                }
+                tree_data.append(match_data)
+
+        return tree_data

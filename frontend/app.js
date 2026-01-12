@@ -177,6 +177,9 @@ function handleResponse(res) {
             watchedIds.delete(res.id);
             refreshCatalog();
         }
+        else if (res.action === "gametree_data") {
+            renderGameTree(res.value);
+        }
         else if (Array.isArray(res.value)) {
             updateCatalogUI(res.value);
         }
@@ -248,11 +251,79 @@ function viewObj(id, type) {
         const obj = catalogCache.find(x => x.id === id);
         updateTeamViewUI(id, obj && obj.extra ? obj.extra.players : []);
     } else if (type === 'cup') {
-        container.innerHTML = `<h4>Cup: ${id}</h4><div id="cup-standings-area">Fetching Standings...</div>`;
+        container.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center">
+                <h4>Cup: ${id}</h4>
+                <button onclick="requestGameTree('${id}')" style="width:auto; background:#6f42c1;">View Game Tree</button>
+            </div>
+            <div id="cup-standings-area">Fetching Standings...</div>
+        `;
         sendJson({ method: "STANDINGS", obj: id });
     } else {
         container.innerHTML = `<h4>Details for ${type} (${id})</h4>`;
     }
+}
+
+function requestGameTree(id) {
+    sendJson({ method: "GAMETREE", obj: id });
+}
+
+function closeModal() {
+    document.getElementById('tree-modal').classList.add('hidden');
+}
+
+function renderGameTree(matches) {
+    const container = document.getElementById('bracket-container');
+    container.innerHTML = "";
+    document.getElementById('tree-modal').classList.remove('hidden');
+
+    if (!matches || matches.length === 0) {
+        container.innerHTML = "<p>No matches found for tree view.</p>";
+        return;
+    }
+
+    const rounds = {};
+    matches.forEach(m => {
+        if (!rounds[m.round]) rounds[m.round] = [];
+        rounds[m.round].push(m);
+    });
+
+    const sortedRoundKeys = Object.keys(rounds).sort((a, b) => parseInt(a) - parseInt(b));
+
+    sortedRoundKeys.forEach(rKey => {
+        const roundCol = document.createElement('div');
+        roundCol.className = 'bracket-round';
+
+
+        rounds[rKey].forEach(m => {
+            const card = document.createElement('div');
+            card.className = 'match-card';
+
+            const sHome = m.score_home !== undefined ? m.score_home : "-";
+            const sAway = m.score_away !== undefined ? m.score_away : "-";
+
+            const homeClass = m.winner === m.home ? "winner-text" : (m.winner ? "loser-text" : "");
+            const awayClass = m.winner === m.away ? "winner-text" : (m.winner ? "loser-text" : "");
+
+            if (m.status === 'active') {
+                card.style.borderColor = "#007bff";
+                card.style.borderWidth = "2px";
+            }
+
+            card.innerHTML = `
+                <div class="team-row ${homeClass}">
+                    <span>${m.home}</span> <span>${sHome}</span>
+                </div>
+                <div style="border-top:1px solid #eee; margin:2px 0;"></div>
+                <div class="team-row ${awayClass}">
+                    <span>${m.away}</span> <span>${sAway}</span>
+                </div>
+            `;
+            roundCol.appendChild(card);
+        });
+
+        container.appendChild(roundCol);
+    });
 }
 
 function populateCupTypes() {

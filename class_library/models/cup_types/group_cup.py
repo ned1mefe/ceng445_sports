@@ -133,3 +133,7 @@ class GroupCup(Cup):
             
         if self._playOffs:
             self._playOffs.watch(self)
+
+    def gametree(self):
+        if self._playOffs:
+            return self._playOffs.gametree()
