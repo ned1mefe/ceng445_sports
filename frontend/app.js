@@ -190,7 +190,7 @@ function handleResponse(res) {
                 if (!cachedItem.extra) cachedItem.extra = {};
                 cachedItem.extra.players = res.value.players;
             }
-            if (currentViewId === res.obj_id) updateTeamViewUI(res.obj_id, res.value.players);
+            if (currentViewId === res.obj_id) updateTeamViewUI(res.obj_id, cachedItem ? cachedItem.extra : {players: res.value.players});
         }
         else if (res.action === "standings") {
             if (currentViewId === res.id) {
@@ -249,7 +249,7 @@ function viewObj(id, type) {
         sendJson({ method: "STATS", obj: id });
     } else if (type === 'team') {
         const obj = catalogCache.find(x => x.id === id);
-        updateTeamViewUI(id, obj && obj.extra ? obj.extra.players : []);
+        updateTeamViewUI(id, obj && obj.extra ? obj.extra : {});
     } else if (type === 'cup') {
         container.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center">
@@ -494,8 +494,11 @@ function renderGameStats(stats) {
     container.innerHTML = html;
 }
 
-function updateTeamViewUI(id, players) {
+function updateTeamViewUI(id, data) {
     const container = document.getElementById('active-object-container');
+    const players = data.players;
+    const year = (data.year !== undefined && data.year !== null) ? data.year : "N/A";
+    const country = (data.country !== undefined && data.country !== null) ? data.country : "N/A";
 
 
     let playersHtml = "<ul>";
@@ -512,6 +515,8 @@ function updateTeamViewUI(id, players) {
     container.innerHTML = `
         <div class="card" style="width:100%">
             <h4>Team: ${id}</h4>
+            <p><strong>Country:</strong> ${country}</p>
+            <p><strong>Year:</strong> ${year}</p>
             <p><strong>Roster:</strong></p>
             ${playersHtml}
             <button onclick="promptAddPlayer('${id}')">Add Player</button>

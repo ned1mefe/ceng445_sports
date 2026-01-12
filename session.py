@@ -142,6 +142,8 @@ class Session:
                         
                         extra = {}
                         if obj_type == 'team':
+                            extra['year'] = getattr(obj, 'year', None)
+                            extra['country'] = getattr(obj, 'country', None)
                             if hasattr(obj, 'players'):
                                 extra['players'] = [f"{name} ({p.number})" for name, p in obj.players.items()]
                             else:
